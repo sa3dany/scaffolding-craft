@@ -1,0 +1,17 @@
+/* Responsive font sizes */
+@screen sm {
+  html {
+    font-size: 16px;
+  }
+}
+
+@screen md {
+  html {
+    font-size: 18px;
+  }
+}
+
+/* Font Awesome RTL fix */
+html[dir="rtl"] [data-fa-rtl] {
+  transform: rotateY(180deg);
+}

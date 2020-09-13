@@ -1,0 +1,93 @@
+{# -- Base HTML layout template that all HTML requests inherit from -- #}
+{#
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ┌─────────────────────────────────────────────────────────────────────────┐ │
+│ │                                headMeta                                 │ │
+│ └─────────────────────────────────────────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────────────────────────────────────────┐ │
+│ │                                headLinks                                │ │
+│ └─────────────────────────────────────────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────────────────────────────────────────┐ │
+│ │                                 headJs                                  │ │
+│ └─────────────────────────────────────────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────────────────────────────────────────┐ │
+│ │                                 headCss                                 │ │
+│ └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│                                 headContent                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ┌─────────────────────────────────────────────────────────────────────────┐ │
+│ │                                bodyHtml                                 │ │
+│ └─────────────────────────────────────────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────────────────────────────────────────┐ │
+│ │                                 bodyJs                                  │ │
+│ └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│                                 bodyContent                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+#}
+{% extends craft.app.request.isAjax() and not craft.app.request.getIsPreview()
+    ? "_boilerplate/_layouts/base-ajax-layout.twig"
+    : "_boilerplate/_layouts/base-web-layout.twig"
+%}
+
+{% block htmlTag %}
+    <html class="fonts-loaded" prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb#"
+        lang="{{ currentSite.language |slice(0,2) }}" dir="{{ locale.orientation }}">
+{% endblock htmlTag %}
+
+{# -- Page content that should be included in the <head> -- #}
+{% block headContent %}
+    {# -- Any <meta> tags that should be included in the <head> #}
+    {% block headMeta %}
+    {% endblock headMeta %}
+
+    {# -- Any <link> tags that should be included in the <head> #}
+    {% block headLinks %}
+    {% endblock headLinks %}
+
+    {# -- Inline and polyfill JS #}
+    {% include "_boilerplate/_partials/head-js.twig" %}
+
+    {#-- Site-wide JavaScript --#}
+    {% if devMode %}
+        <script defer src="/assets/js/bundle.js"></script>
+    {% else %}
+        {{ include('_boilerplate/_partials/build-js.html') }}
+    {% endif %}
+
+    {# -- Any JavaScript that should be included before </head> -- #}
+    {% block headJs %}
+    {% endblock headJs %}
+
+    {# -- Inline CSS & Site-wide CSS #}
+    <style>
+        [v-cloak] {display: none !important;}
+        .yii-debug-toolbar {display: none !important;}
+        @media (min-width: 1024px) {.yii-debug-toolbar {display: block !important;}}
+        {# -- Any CSS that should be included before </head> -- #}
+        {% block headCss %}
+        {% endblock headCss %}
+    </style>
+    {% if devMode %}
+        <link rel="stylesheet" href="/assets/css/style.css">
+    {% else %}
+        {{ include('_boilerplate/_partials/build-css.html') }}
+    {% endif %}
+
+{% endblock headContent %}
+
+{# -- Page content that should be included in the <body> -- #}
+{% block bodyContent %}
+    {# -- Page content that should be included in the <body> -- #}
+    {% block bodyHtml %}
+    {% endblock bodyHtml %}
+
+    {# -- Inline JS #}
+    {% include "_boilerplate/_partials/body-js.twig" %}
+
+    {# -- Any JavaScript that should be included before </body> -- #}
+    {% block bodyJs %}
+    {% endblock bodyJs %}
+{% endblock bodyContent %}

@@ -1,0 +1,27 @@
+{
+  "require": {
+    "craftcms/cms": "^${SCAFFOLDING_CRAFT_VERSION}",
+    "craftcms/redactor": "2.7.4",
+    "nystudio107/craft-seomatic": "3.3.18",
+    "vlucas/phpdotenv": "^3.4.0"
+  },
+  "require-dev": {
+    "yiisoft/yii2-shell": "^2.0.3"
+  },
+  "autoload": {
+    "psr-4": {}
+  },
+  "config": {
+    "vendor-dir": "/usr/local/lib/craft",
+    "sort-packages": true,
+    "optimize-autoloader": true,
+    "platform": {
+      "php": "7.0"
+    }
+  },
+  "scripts": {
+    "post-root-package-install": [
+      "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+    ]
+  }
+}
