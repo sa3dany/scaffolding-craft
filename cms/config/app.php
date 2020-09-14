@@ -27,11 +27,11 @@ return [
         'deprecator' => [
             'throwExceptions' => App::env('DEV_MODE'),
         ],
-        // Mutex fix for Windows VM hosts
-        /*'mutex' => function () {
+        'mutex' => function () {
+            // https://craftcms.com/docs/nitro/usage.html#add-a-site-with-nitro-add
             $config = App::mutexConfig();
             $config['isWindows'] = (bool)getenv('WINDOWS_FS') ?: null;
             return Craft::createObject($config);
-        },*/
+        },
     ],
 ];
