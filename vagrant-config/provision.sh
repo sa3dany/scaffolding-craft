@@ -107,17 +107,18 @@ set_permissions vagrant:www-data 774 "/usr/local/lib/craft" # <--Vendor
 set_permissions vagrant:www-data 774 "/vagrant/cms/web/cpresources/"*
 
 # Install craft
-echo "Installing craft..."
-sudo --user=vagrant --set-home \
-  cms/craft install \
-    --interactive=0 \
-    --email="$SCAFFOLDING_CRAFT_EMAIL" \
-    --username="$SCAFFOLDING_CRAFT_EMAIL" \
-    --siteName="$SCAFFOLDING_CRAFT_SITE_NAME" \
-    --siteUrl="$SCAFFOLDING_CRAFT_SITE_URL" \
-    --password="$PROVISION_CRAFT_PASSWORD" \
-  > /dev/null
+echo "Craft setup..."
+if ! cms/craft install/check; then
+  sudo --user=vagrant \
+    cms/craft install \
+      --interactive=0 \
+      --email="$SCAFFOLDING_CRAFT_EMAIL" \
+      --username="$SCAFFOLDING_CRAFT_EMAIL" \
+      --siteName="$SCAFFOLDING_CRAFT_SITE_NAME" \
+      --siteUrl="$SCAFFOLDING_CRAFT_SITE_URL" \
+      --password="$PROVISION_CRAFT_PASSWORD" \
+    > /dev/null
 
-# Output generated password
-echo "Craft username: $SCAFFOLDING_CRAFT_EMAIL"
-echo "Craft password: $PROVISION_CRAFT_PASSWORD"
+  echo "USERNAME: $SCAFFOLDING_CRAFT_EMAIL"
+  echo "PASSWORD: $PROVISION_CRAFT_PASSWORD"
+fi
