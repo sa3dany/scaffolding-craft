@@ -1,2 +1,10 @@
 /*
-!/src
+
+!/*.js
+!/*.json
+
+!/cms
+/cms/*
+!/cms/templates
+
+!/src/*
