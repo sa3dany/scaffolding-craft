@@ -5,11 +5,14 @@
   "description": "",
   "license": "ISC",
   "scripts": {
-    "build:js": "rollup -c",
     "build:css": "postcss src/css/style.css --dir cms/web/assets/site/css",
-    "watch:js": "rollup -c -w",
+    "build:js": "rollup -c",
+    "build": "run-s build:css build:js",
+    "clean:css": "rm cms/web/assets/site/css/style.*.css",
+    "clean:js": "rm cms/web/assets/site/js/bundle.*.js",
+    "clean": "run-p clean:css clean:js",
     "watch:css": "postcss src/css/style.css --dir cms/web/assets/site/css -w",
-    "build": "run-s build:*",
+    "watch:js": "rollup -c -w",
     "watch": "run-p watch:*"
   },
   "dependencies": {
