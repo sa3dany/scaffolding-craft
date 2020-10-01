@@ -1,7 +1,7 @@
 const fs = require('fs');
 
-const CSS_MANIFEST_FILE = 'cms/web/assets/css/manifest.json';
-const JS_MANIFEST_FILE = 'cms/web/assets/js/manifest.json';
+const CSS_MANIFEST_FILE = 'cms/web/assets/site/css/manifest.json';
+const JS_MANIFEST_FILE = 'cms/web/assets/site/js/manifest.json';
 
 let cssManifest = JSON.parse(fs.readFileSync(CSS_MANIFEST_FILE));
 fs.writeFileSync(
@@ -17,12 +17,12 @@ fs.writeFileSync(
 
 function toLinkTags(manifest) {
   return Object.keys(manifest).map(
-    (file) => `<link rel="stylesheet" href="/assets/css/${manifest[file]}">`
+    (file) => `<link rel="stylesheet" href="/assets/site/css/${manifest[file]}">`
   );
 }
 
 function toScriptTags(manifest) {
   return Object.keys(manifest).map(
-    (file) => `<script defer src="/assets/js/${manifest[file]}"></script>`
+    (file) => `<script defer src="/assets/site/js/${manifest[file]}"></script>`
   );
 }

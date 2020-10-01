@@ -52,7 +52,7 @@
 
     {#-- Site-wide JavaScript --#}
     {% if devMode %}
-        <script defer src="/assets/js/bundle.js"></script>
+        <script defer src="/assets/site/js/bundle.js"></script>
     {% else %}
         {{ include('_boilerplate/_partials/build-js.html') }}
     {% endif %}
@@ -71,7 +71,7 @@
         {% endblock headCss %}
     </style>
     {% if devMode %}
-        <link rel="stylesheet" href="/assets/css/style.css">
+        <link rel="stylesheet" href="/assets/site/css/style.css">
     {% else %}
         {{ include('_boilerplate/_partials/build-css.html') }}
     {% endif %}

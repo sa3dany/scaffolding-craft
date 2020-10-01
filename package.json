@@ -6,9 +6,9 @@
   "license": "ISC",
   "scripts": {
     "build:js": "rollup -c",
-    "build:css": "postcss src/css/style.css --dir cms/web/assets/css",
+    "build:css": "postcss src/css/style.css --dir cms/web/assets/site/css",
     "watch:js": "rollup -c -w",
-    "watch:css": "postcss src/css/style.css --dir cms/web/assets/css -w",
+    "watch:css": "postcss src/css/style.css --dir cms/web/assets/site/css -w",
     "build": "run-s build:*",
     "watch": "run-p watch:*"
   },

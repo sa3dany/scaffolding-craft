@@ -1,4 +1,4 @@
-const MANIFEST_PATH = 'cms/web/assets/css/manifest.json';
+const MANIFEST_PATH = "cms/web/assets/site/css/manifest.json";
 
 const production = process.env.NODE_ENV == 'production';
 

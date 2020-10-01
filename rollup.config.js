@@ -13,7 +13,7 @@ export default {
   output: {
     format: 'iife',
     name: 'app',
-    dir: 'cms/web/assets/js',
+    dir: "cms/web/assets/site/js",
     entryFileNames: `bundle${production ? '.[hash]' : ''}.js`,
     sourcemap: production ? false : 'inline'
   },
