@@ -6,5 +6,8 @@
 !/cms
 /cms/*
 !/cms/templates
+/cms/templates/_boilerplate
+/cms/templates/_layouts
+/cms/templates/_macros/cookies.twig
 
 !/src/*
