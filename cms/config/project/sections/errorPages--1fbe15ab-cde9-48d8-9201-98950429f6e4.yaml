@@ -1,0 +1,16 @@
+enableVersioning: false
+handle: errorPages
+name: Errors
+propagationMethod: all
+siteSettings:
+  896e9d02-9e9a-41b8-a6fd-39316926e329:
+    enabledByDefault: true
+    hasUrls: false
+    template: null
+    uriFormat: null
+  fa5560ca-a6b2-4d6c-9bcd-887de76cde4a:
+    enabledByDefault: true
+    hasUrls: false
+    template: null
+    uriFormat: null
+type: channel

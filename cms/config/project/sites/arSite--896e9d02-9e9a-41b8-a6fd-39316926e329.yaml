@@ -1,0 +1,9 @@
+baseUrl: '@web/ar/'
+enabled: true
+handle: arSite
+hasUrls: true
+language: ar
+name: اسم الموقع
+primary: false
+siteGroup: 9e1a558f-cc9b-45a4-8369-e49a079d9ece
+sortOrder: 2

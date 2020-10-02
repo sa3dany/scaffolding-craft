@@ -1,0 +1,9 @@
+baseUrl: '@web/en/'
+enabled: true
+handle: enSite
+hasUrls: true
+language: en
+name: Site Name
+primary: true
+siteGroup: 9e1a558f-cc9b-45a4-8369-e49a079d9ece
+sortOrder: 1
