@@ -46,5 +46,5 @@ Vagrant.configure("2") do |config|
     vb.name = "${SCAFFOLDING_VAGRANT_NAME}"
   end
 
-  config.vm.provision "shell", path: "vagrant-config/provision.sh"
+  config.vm.provision "shell", path: "config/provision.sh"
 end

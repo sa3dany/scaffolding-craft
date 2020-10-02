@@ -52,10 +52,10 @@ fi
 echo "Setting up scaffolding file with your config variables ..."
 subst "Vagrantfile"
 subst "cms\composer.json"
-subst "vagrant-config/provision.sh"
-subst "vagrant-config/cms/local.env"
-subst "vagrant-config/cms/staging.env"
-subst "vagrant-config/cms/live.env"
+subst "config/provision.sh"
+subst "config/cms/local.env"
+subst "config/cms/staging.env"
+subst "config/cms/live.env"
 
 
 # Install npm modules then print info about outdated modules ###########

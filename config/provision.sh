@@ -7,7 +7,7 @@ export DEBIAN_FRONTEND="noninteractive"
 
 # change directory to config directory & load utils
 cd /vagrant
-source vagrant-config/utils.sh
+source config/utils.sh
 
 
 # Provisioning variables ###############################################
@@ -57,7 +57,7 @@ composer_get
 
 # Update PHP config ####################################################
 echo "Updating php configuration..."
-php_mod_add $PROVISION_PHP_VER "vagrant" "vagrant-config/php/php.ini"
+php_mod_add $PROVISION_PHP_VER "vagrant" "config/php/php.ini"
 php_mod_enable $PROVISION_PHP_VER "vagrant"
 
 
@@ -66,7 +66,7 @@ echo "Configuring web server..."
 export PROVISION_PHP_VER # -------------------------------- START EXPORT
 CONFIG="$(mktemp)" # ======================================== START FILE
 envsubst '$PROVISION_PHP_VER' \
-  < "vagrant-config/nginx/default.conf" > "$CONFIG"
+  < "config/nginx/default.conf" > "$CONFIG"
 nginx_config_add "craft" "$CONFIG"
 rm "$CONFIG" && unset CONFIG # ================================ END FILE
 export -n PROVISION_PHP_VER # ------------------------------- END EXPORT
@@ -95,7 +95,7 @@ sudo --user=vagrant --set-home \
 
 # Copy .env file
 echo "Copying .env file..."
-cp "vagrant-config/cms/local.env" "/vagrant/cms/.env"
+cp "config/cms/local.env" "/vagrant/cms/.env"
 
 # Set permissions
 set_permissions vagrant:www-data 774 "/vagrant/cms/.env"
