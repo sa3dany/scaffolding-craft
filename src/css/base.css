@@ -15,3 +15,7 @@
 html[dir="rtl"] [data-fa-rtl] {
   transform: rotateY(180deg);
 }
+
+img:-moz-loading {
+  visibility: hidden;
+}
