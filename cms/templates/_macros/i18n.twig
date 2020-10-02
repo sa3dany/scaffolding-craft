@@ -1,0 +1,18 @@
+{# Get URL of entry in alternative language or home if not entry eists #}
+{%- macro alt_href(site, entry) -%}
+  {%~ set locale = craft.app.i18n.getLocaleById(site.language|slice(0,2)) %}
+  {%~ set url = site.getBaseUrl() %}
+  {%~ if entry is not null %}
+    {%~ set altEntry = craft.entries()
+      .siteId(site.id)
+      .id(entry.id)
+      .one() %}
+    {%~ if altEntry %}
+      {%~ set url = altEntry.url %}
+    {%~ endif %}
+  {%~ else ~%}
+    {% set slug = craft.app.request.getSegment(1) %}
+    {% set url = siteUrl(slug, null, null, site.id) %}
+  {%~ endif ~%}
+  <a href="{{ url }}">{{ locale.displayName }}</a>
+{%- endmacro -%}
