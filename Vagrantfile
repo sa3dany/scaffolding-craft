@@ -35,10 +35,9 @@ Vagrant.configure("2") do |config|
   # For smb use:
   # config.vm.synced_folder "../data", "/vagrant_data", type: "smb",
   #   mount_options: ["dir_mode=0775,file_mode=0774"]
-  config.vm.synced_folder ".", "/vagrant",
-    owner: "vagrant",
-    group: "www-data",
-    mount_options: ["dmode=2775","fmode=0774"]
+  config.vm.synced_folder ".", "/vagrant",  disabled: true
+  config.vm.synced_folder "config", "/vagrant/config"
+  config.vm.synced_folder "cms", "/vagrant/cms", group: "www-data"
 
   config.vm.provider "virtualbox" do |vb|
     # vb.gui = true
