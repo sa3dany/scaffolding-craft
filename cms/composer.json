@@ -1,5 +1,6 @@
 {
   "require": {
+    "craftcms/aws-s3": "1.2.11",
     "craftcms/cms": "^${SCAFFOLDING_CRAFT_VERSION}",
     "craftcms/redactor": "2.7.4",
     "nystudio107/craft-seomatic": "3.3.18",
