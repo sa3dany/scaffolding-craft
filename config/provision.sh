@@ -6,7 +6,7 @@ export DEBIAN_FRONTEND="noninteractive"
 # Parse args ###########################################################
 # SEE: https://stackoverflow.com/a/29754866/13037463
 OPTIONS=h
-LONG_OPTIONS=config-path:,craft-admin-password:,drop,php:
+LONG_OPTIONS=config-path:,craft-admin-password:,domain-name:,drop,php:
 ! PARSED=$(getopt --name "$0" \
     --options="$OPTIONS" \
     --longoptions=$LONG_OPTIONS \
@@ -18,6 +18,7 @@ PROVISION_CONFIG_PATH="$(dirname "$0")"
 PROVISION_CRAFT_PASSWORD=
 PROVISION_DROP_DB=false
 PROVISION_PHP_VER=7.4
+PROVISION_DOMAIN=localhost
 
 while true; do
   case "$1" in
@@ -29,6 +30,9 @@ while true; do
       shift 2; ;;
     --craft-admin-password)
       PROVISION_CRAFT_PASSWORD="$2"
+      shift 2; ;;
+    --domain-name)
+      PROVISION_DOMAIN="$2"
       shift 2; ;;
     --drop)
       PROVISION_DROP_DB=true
@@ -83,11 +87,11 @@ export PROVISION_PHP_VER # -------------------------------- START EXPORT
 CONFIG="$(mktemp)" # ======================================== START FILE
 envsubst '$PROVISION_PHP_VER' \
   < "nginx/local.conf" > "$CONFIG"
-nginx_config_add "craft" "$CONFIG"
+nginx_config_add "$PROVISION_DOMAIN" "$CONFIG"
 rm "$CONFIG" && unset CONFIG # ================================ END FILE
 export -n PROVISION_PHP_VER # ------------------------------- END EXPORT
 nginx_config_disable_default
-nginx_config_enable "craft"
+nginx_config_enable "$PROVISION_DOMAIN"
 
 
 # Database setup #######################################################
