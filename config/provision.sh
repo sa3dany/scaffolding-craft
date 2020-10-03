@@ -75,6 +75,10 @@ php_mod_enable $PROVISION_PHP_VER "vagrant"
 # Nginx config #########################################################
 log 1 "Configuring NGINX"
 nginx_get
+if [ ! -d "/etc/nginx/nginx-partials" ]; then
+  mkdir "/etc/nginx/nginx-partials"
+fi
+cp "nginx/partials/"* "/etc/nginx/nginx-partials"
 export PROVISION_PHP_VER # -------------------------------- START EXPORT
 CONFIG="$(mktemp)" # ======================================== START FILE
 envsubst '$PROVISION_PHP_VER' \
