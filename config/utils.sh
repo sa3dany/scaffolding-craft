@@ -124,6 +124,11 @@ makeswap () {
   fi
 }
 
+makeswap_auto () {
+  local quarter_mem="$(free --mega | awk '$1 == "Mem:" { print(int($2/4)) }')"
+  makeswap "${quarter_mem}M"
+}
+
 password_gen () {
   head /dev/urandom | tr -dc A-Za-z0-9 | head -c12
 }

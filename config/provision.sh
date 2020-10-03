@@ -18,8 +18,8 @@ PROVISION_CRAFT_PASSWORD="$(password_gen)"
 timedatectl set-timezone Asia/Riyadh
 
 
-# Add some swap ########################################################
-makeswap "512M"
+# Add some swap (1/4 of total memory) ##################################
+makeswap_auto
 
 
 # Dependencies #########################################################
