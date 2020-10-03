@@ -24,11 +24,8 @@ makeswap_auto
 
 # Dependencies #########################################################
 log 1 "Installing curl, wget & unzip"
-apt-get -qq update > /dev/null
+apt_get "curl" "wget" "unzip"
 
-# General
-echo "Installing curl, wget & unzip..."
-apt-get -qq install curl wget unzip > /dev/null
 
 # PHP
 echo "Installing php$PROVISION_PHP_VER..."

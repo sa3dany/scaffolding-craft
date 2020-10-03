@@ -1,3 +1,8 @@
+apt_get () {
+  apt-get -qq update > /dev/null
+  apt-get -qq install $* > /dev/null
+}
+
 composer_get () {
   if [ ! $(hash composer &> /dev/null) ]; then
     local DOWNLOAD_URL="https://getcomposer.org/installer"
