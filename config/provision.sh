@@ -113,9 +113,12 @@ mysql_user_grant "cms_user" "cms"
 # Composer install
 log 1 "Performing composer install"
 composer_get
-mkdir --mode 777 --parents "/usr/local/lib/craft"
-sudo --user=vagrant --set-home \
-  composer --quiet --working-dir="cms" \
+if [ ! -d "/usr/local/lib/craft" ]; then
+  mkdir --mode 774 --parents "/usr/local/lib/craft"
+fi
+chown www-data:www-data "/usr/local/lib/craft"
+sudo --user=www-data --set-home \
+  composer --quiet --no-cache --working-dir="$PROVISION_CRAFT_PATH" \
     install --no-dev
 
 # Copy .env file
