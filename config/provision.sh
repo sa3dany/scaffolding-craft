@@ -6,7 +6,7 @@ export DEBIAN_FRONTEND="noninteractive"
 # Parse args ###########################################################
 # SEE: https://stackoverflow.com/a/29754866/13037463
 OPTIONS=
-LONG_OPTIONS=config-path:,craft-admin-password:,craft-path:,domain-name:,drop,php:
+LONG_OPTIONS="config-path:,craft-admin-password:,craft-path:,domain-name:,drop,php:,staging"
 ! PARSED=$(getopt --name "$0" \
     --options="$OPTIONS" \
     --longoptions=$LONG_OPTIONS \
@@ -18,6 +18,7 @@ PROVISION_CONFIG_PATH="$(dirname "$0")"
 PROVISION_CRAFT_ADMIN_PASSWORD=
 PROVISION_CRAFT_PATH=
 PROVISION_DROP_DB=false
+PROVISION_ENV=
 PROVISION_PHP_VER=7.4
 PROVISION_DOMAIN=localhost
 
@@ -44,6 +45,12 @@ while true; do
     --php)
       PROVISION_PHP_VER="$2"
       shift 2; ;;
+    --staging)
+      if [ ! -z "$PROVISION_ENV" ]; then
+        echo "only one env modifier is allowed at a time"; exit 3
+      fi
+      PROVISION_ENV=staging
+      shift; ;;
     --)
       shift; break; ;;
     *)
