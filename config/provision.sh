@@ -131,10 +131,12 @@ set_permissions vagrant:www-data 774 "$PROVISION_CRAFT_PATH/storage/"*
 set_permissions vagrant:www-data 774 "/usr/local/lib/craft" # <--Vendor
 set_permissions vagrant:www-data 774 "$PROVISION_CRAFT_PATH/web/cpresources/"*
 
-# Install craft
-log 1 "Craft setup"
+# Install Craft CMS if not installed. Otherwise, clear cache
 if ! cms/craft install/check; then
-  sudo --user=vagrant \
+
+  # Install Craft CMS
+  log 1 "Installing Craft CMS"
+  sudo --user=www-data \
     cms/craft install \
       --interactive=0 \
       --email="$SCAFFOLDING_CRAFT_EMAIL" \
@@ -146,4 +148,14 @@ if ! cms/craft install/check; then
 
   echo "USERNAME: $SCAFFOLDING_CRAFT_EMAIL"
   echo "PASSWORD: $PROVISION_CRAFT_ADMIN_PASSWORD"
+
+else
+
+  # Clear craft caches
+  log 1 'Clearing Craft CMS caches'
+  cd "$PROVISION_CRAFT_PATH"
+    ./craft install/check > /dev/null
+    ./craft clear-caches/all > /dev/null
+  cd - > /dev/null
+
 fi
