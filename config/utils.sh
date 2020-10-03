@@ -2,12 +2,12 @@ R='\033[0;31m'
 G='\033[0;32m'
 B='\033[0;34m'
 
-apt_get () {
-  apt-get -qq update > /dev/null
-  apt-get -qq install $* > /dev/null
+apt_get() {
+  apt-get -qq update >/dev/null
+  apt-get -qq install $* >/dev/null
 }
 
-certbot_apply () {
+certbot_apply() {
   certbot --agree-tos \
     --domains $2 \
     --email $3 \
@@ -21,8 +21,8 @@ certbot_apply () {
     --quiet
 }
 
-composer_get () {
-  if [ ! $(hash composer &> /dev/null) ]; then
+composer_get() {
+  if [ ! $(hash composer &>/dev/null) ]; then
     local DOWNLOAD_URL="https://getcomposer.org/installer"
     local DOWNLOAD_FILE="$(mktemp)" # ======================= START FILE
     local INSTALL_DIR="/usr/local/bin"
@@ -35,9 +35,9 @@ composer_get () {
   fi
 }
 
-composer_install () {
+composer_install() {
   tmpdir="$(mktemp --directory)" # =========================== START DIR
-  cd $tmpdir # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ START PWD
+  cd $tmpdir                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ START PWD
   cp "$1/composer".* "$tmpdir/"
   chmod --recursive 777 .
   sudo --user=vagrant --set-home \
@@ -47,11 +47,11 @@ composer_install () {
   fi
   mv "$tmpdir/vendor" "$1/vendor"
   cp -p "$tmpdir/composer".* "$1/"
-  cd - # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ END PWD
+  cd -          # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ END PWD
   rmdir $tmpdir # ============================================== END DIR
 }
 
-craft_download_vendor () {
+craft_download_vendor() {
   local url='https://craftcms.com/latest-v3.tar.gz'
   local tmpfile="$(mktemp)" # =============================== START FILE
   wget -q --output-document="$tmpfile" "$url"
@@ -59,23 +59,23 @@ craft_download_vendor () {
   rm "$tmpfile" # ============================================= END FILE
 }
 
-craft_create_project () {
+craft_create_project() {
   if [ ! -d "$1" ]; then
     sudo --user=vagrant --set-home \
       composer.phar create-project craftcms/craft \
-        --no-interaction \
-        --no-progress \
-        --quiet \
-        --remove-vcs \
-        "$1"
+      --no-interaction \
+      --no-progress \
+      --quiet \
+      --remove-vcs \
+      "$1"
   fi
 }
 
-import_env () {
+import_env() {
   export $(grep -v '^#' "$1" | xargs)
 }
 
-log () {
+log() {
   for i in $(seq 1 $1); do
     printf "    "
   done
@@ -83,40 +83,40 @@ log () {
   echo "$@"
 }
 
-mysql_db_import () {
-  sudo mysql $1 < "$2"
+mysql_db_import() {
+  sudo mysql $1 <"$2"
 }
 
-mysql_db_drop () {
+mysql_db_drop() {
   sudo mysql -e \
     "DROP DATABASE IF EXISTS $1;"
 }
 
-mysql_db_create () {
+mysql_db_create() {
   sudo mysql -e \
     "CREATE DATABASE IF NOT EXISTS $1
       CHARACTER SET utf8
       COLLATE utf8_unicode_ci;"
 }
 
-mysql_get () {
-  apt-get -qq update > /dev/null
-  apt-get -qq install mysql-server > /dev/null
+mysql_get() {
+  apt-get -qq update >/dev/null
+  apt-get -qq install mysql-server >/dev/null
 }
 
-mysql_user_add () {
+mysql_user_add() {
   sudo mysql -e \
     "CREATE USER IF NOT EXISTS '$1'@'localhost'
       IDENTIFIED BY '$2';"
 }
 
-mysql_user_grant () {
+mysql_user_grant() {
   sudo mysql -e \
     "GRANT ALL ON $2.*
       TO '$1'@'localhost';"
 }
 
-nginx_config_disable_default () {
+nginx_config_disable_default() {
   local default="/etc/nginx/sites-enabled/default"
   if [ -f $default ]; then
     rm $default
@@ -124,25 +124,25 @@ nginx_config_disable_default () {
   fi
 }
 
-nginx_config_add () {
+nginx_config_add() {
   cp "$2" "/etc/nginx/sites-available/${1}.conf"
   chmod 644 "/etc/nginx/sites-available/${1}.conf"
 }
 
-nginx_config_enable () {
+nginx_config_enable() {
   ln --symbolic --force \
     "/etc/nginx/sites-available/${1}.conf" \
     "/etc/nginx/sites-enabled/"
   systemctl restart nginx
 }
 
-nginx_get () {
-  apt-get -qq update > /dev/null
-  apt-get -qq install certbot nginx python3-certbot-nginx > /dev/null
+nginx_get() {
+  apt-get -qq update >/dev/null
+  apt-get -qq install certbot nginx python3-certbot-nginx >/dev/null
 }
 
-php_get () {
-  apt-get -qq update > /dev/null
+php_get() {
+  apt-get -qq update >/dev/null
   apt-get -qq install \
     php${1}-curl \
     php${1}-dom \
@@ -153,10 +153,10 @@ php_get () {
     php${1}-zip \
     php${1}-xml \
     php-imagick \
-  > /dev/null
+    >/dev/null
 }
 
-php_mod_add () {
+php_mod_add() {
   local PHP_VERSION=$1
   local MOD_NAME="$2"
   local MOD_FILE="$3"
@@ -164,41 +164,41 @@ php_mod_add () {
   chmod 644 "/etc/php/$PHP_VERSION/mods-available/${MOD_NAME}.ini"
 }
 
-php_mod_enable () {
+php_mod_enable() {
   local PHP_VERSION=$1
   local MOD_NAME="$2"
   phpenmod -v $PHP_VERSION -s fpm "$MOD_NAME"
   systemctl restart php${PHP_VERSION}-fpm
 }
 
-makeswap () {
+makeswap() {
   if [ ! -f /swapfile ]; then
     fallocate -l "$1" /swapfile
     chmod 600 /swapfile
-    mkswap /swapfile > /dev/null && swapon /swapfile
-    sysctl vm.swappiness=10 > /dev/null
-    sysctl vm.vfs_cache_pressure=50 > /dev/null
-    echo '/swapfile   none    swap    sw    0   0' >> /etc/fstab
-    echo 'vm.swappiness=10' >> /etc/sysctl.conf
-    echo 'vm.vfs_cache_pressure=50' >> /etc/sysctl.conf
+    mkswap /swapfile >/dev/null && swapon /swapfile
+    sysctl vm.swappiness=10 >/dev/null
+    sysctl vm.vfs_cache_pressure=50 >/dev/null
+    echo '/swapfile   none    swap    sw    0   0' >>/etc/fstab
+    echo 'vm.swappiness=10' >>/etc/sysctl.conf
+    echo 'vm.vfs_cache_pressure=50' >>/etc/sysctl.conf
   fi
 }
 
-makeswap_auto () {
+makeswap_auto() {
   local quarter_mem="$(free --mega | awk '$1 == "Mem:" { print(int($2/4)) }')"
   makeswap "${quarter_mem}M"
 }
 
-password_gen () {
+password_gen() {
   head /dev/urandom | tr -dc A-Za-z0-9 | head -c12
 }
 
-postfix_get () {
-  apt-get -qq update > /dev/null
-  apt-get -qq install postfix > /dev/null
+postfix_get() {
+  apt-get -qq update >/dev/null
+  apt-get -qq install postfix >/dev/null
 }
 
-postfix_relay_to_gsuite () {
+postfix_relay_to_gsuite() {
   local origin=$1
   local relayhost="smtp-relay.gmail.com"
   local relayport="587"
@@ -210,19 +210,18 @@ postfix_relay_to_gsuite () {
   postconf -e 'inet_interfaces = loopback-only'
   postconf -e 'mydestination ='
   postconf -e 'virtual_alias_maps = hash:/etc/postfix/virtual'
-  printf "" > $virtualmap &&
-    echo "root   root@localhost" >> $virtualmap && \
-    echo "ubuntu ubuntu@localhost" >> $virtualmap && \
-  postmap /etc/postfix/virtual
+  printf "" >$virtualmap &&
+    echo "root   root@localhost" >>$virtualmap &&
+    echo "ubuntu ubuntu@localhost" >>$virtualmap &&
+    postmap /etc/postfix/virtual
   systemctl restart postfix
 }
 
-set_permissions () {
+set_permissions() {
   local owner=$1
   local mode=$2
   shift 2
-  for file in "$@"
-  do
+  for file in "$@"; do
     if [ -d "$file" ]; then
       chown --recursive $owner $file
       chmod --recursive $mode $file
@@ -234,7 +233,7 @@ set_permissions () {
   done
 }
 
-set_permissions_craft () {
+set_permissions_craft() {
   local owner=$1
   local mode=$2
   local path=$3
