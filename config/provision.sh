@@ -65,17 +65,6 @@ log 1 "Installing curl, wget & unzip"
 apt_get "curl" "wget" "unzip"
 
 
-# nginx
-echo "Installing nginx & certbot..."
-apt-get -qq install certbot nginx python3-certbot-nginx > /dev/null
-
-# MySQL
-echo "Installing MySQL..."
-apt-get -qq install mysql-server > /dev/null
-
-# Composer
-echo "Installing Composer..."
-composer_get
 # Update PHP config ####################################################
 log 1 "Updating php configuration..."
 php_get $PROVISION_PHP_VER
@@ -84,7 +73,8 @@ php_mod_enable $PROVISION_PHP_VER "vagrant"
 
 
 # Nginx config #########################################################
-echo "Configuring web server..."
+log 1 "Configuring NGINX"
+nginx_get
 export PROVISION_PHP_VER # -------------------------------- START EXPORT
 CONFIG="$(mktemp)" # ======================================== START FILE
 envsubst '$PROVISION_PHP_VER' \
@@ -98,6 +88,7 @@ nginx_config_enable "craft"
 
 # Database setup #######################################################
 log 1 "MySQL setup"
+mysql_get
 if [ "$PROVISION_DROP_DB" = true ]; then
   echo "Dropping existing database (if any)..."
   mysql_db_drop "cms"
@@ -110,6 +101,7 @@ mysql_user_grant "cms_user" "cms"
 # Setup Craft CMS ######################################################
 # Composer install
 log 1 "Performing composer install"
+composer_get
 mkdir --mode 777 --parents "/usr/local/lib/craft"
 sudo --user=vagrant --set-home \
   composer --quiet --working-dir="cms" \
