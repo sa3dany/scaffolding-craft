@@ -48,6 +48,14 @@ craft_create_project () {
   fi
 }
 
+log () {
+  for i in $(seq 1 $1); do
+    printf "    "
+  done
+  shift
+  echo "$@"
+}
+
 mysql_db_import () {
   sudo mysql $1 < "$2"
 }

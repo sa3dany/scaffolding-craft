@@ -23,7 +23,7 @@ makeswap_auto
 
 
 # Dependencies #########################################################
-echo "Updating APT repos..."
+log 1 "Installing curl, wget & unzip"
 apt-get -qq update > /dev/null
 
 # General
@@ -77,7 +77,7 @@ nginx_config_enable "craft"
 
 
 # Database setup #######################################################
-echo "Database setup..."
+log 1 "MySQL setup"
 if [ "$PROVISION_DROP_DB" = true ]; then
   echo "Dropping existing database (if any)..."
   mysql_db_drop "cms"
@@ -89,7 +89,7 @@ mysql_user_grant "cms_user" "cms"
 
 # Setup Craft CMS ######################################################
 # Composer install
-echo "Performing composer install..."
+log 1 "Performing composer install"
 mkdir --mode 777 --parents "/usr/local/lib/craft"
 sudo --user=vagrant --set-home \
   composer --quiet --working-dir="cms" \
@@ -109,7 +109,7 @@ set_permissions vagrant:www-data 774 "/usr/local/lib/craft" # <--Vendor
 set_permissions vagrant:www-data 774 "/vagrant/cms/web/cpresources/"*
 
 # Install craft
-echo "Craft setup..."
+log 1 "Craft setup"
 if ! cms/craft install/check; then
   sudo --user=vagrant \
     cms/craft install \
