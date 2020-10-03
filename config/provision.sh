@@ -67,9 +67,6 @@ done
 
 # Change PWD & load utils ##############################################
 cd "$PROVISION_CONFIG_PATH"
-
-
-# Load utilities #######################################################
 source "utils.sh"
 
 
