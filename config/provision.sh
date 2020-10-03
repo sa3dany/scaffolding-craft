@@ -3,19 +3,7 @@ set -o errexit -o noclobber -o nounset -o pipefail
 export DEBIAN_FRONTEND="noninteractive"
 
 
-# Parse args ###########################################################
-# SEE: https://stackoverflow.com/a/29754866/13037463
-OPTIONS=
-LONG_OPTIONS="config-path:,craft-admin-password:,craft-path:,drop,php:,\
-email-hostname:,hostname:,staging"
-
-! PARSED=$(getopt --name "$0" \
-    --options="$OPTIONS" \
-    --longoptions=$LONG_OPTIONS \
-    -- "$@")
-if [[ ${PIPESTATUS[0]} -ne 0 ]]; then exit 2; fi
-set -- $PARSED
-
+# Variables ############################################################
 PROVISION_CONFIG_PATH="$(dirname "$0")"
 PROVISION_CRAFT_ADMIN_PASSWORD="$(password_gen)"
 PROVISION_CRAFT_PATH=
@@ -25,6 +13,16 @@ PROVISION_ENV=
 PROVISION_HOSTNAME=localhost
 PROVISION_PHP_VER=7.4
 
+
+# Parse args ###########################################################
+# SEE: https://stackoverflow.com/a/29754866/13037463
+OPTIONS="config-path:,craft-admin-password:,craft-path:,drop,php:,\
+email-hostname:,hostname:,staging"
+
+! PARSED=$(getopt --name="$0" --longoptions=$OPTIONS -- "$@")
+if [[ ${PIPESTATUS[0]} -ne 0 ]]; then exit 2; fi
+
+set -- $PARSED
 while true; do
   case "$1" in
     --config-path)
@@ -124,7 +122,7 @@ mysql_user_add "cms_user" "cms_password"
 mysql_user_grant "cms_user" "cms"
 
 
-# Setup Craft CMS ######################################################
+# Craft CMS Setup ######################################################
 # Composer install
 log 1 "Performing composer install"
 composer_get
