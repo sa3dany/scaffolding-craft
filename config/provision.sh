@@ -3,16 +3,10 @@ set -o errexit -o noclobber -o nounset -o pipefail
 export DEBIAN_FRONTEND="noninteractive"
 
 
-# Provisioning variables ###############################################
-PROVISION_PHP_VER=7.4
-PROVISION_DROP_DB=false
-PROVISION_CRAFT_PASSWORD="$(password_gen)"
-
-
 # Parse args ###########################################################
 # SEE: https://stackoverflow.com/a/29754866/13037463
 OPTIONS=h
-LONG_OPTIONS=config-path:
+LONG_OPTIONS=config-path:,craft-admin-password:,drop,php:
 ! PARSED=$(getopt --name "$0" \
     --options="$OPTIONS" \
     --longoptions=$LONG_OPTIONS \
@@ -21,6 +15,9 @@ if [[ ${PIPESTATUS[0]} -ne 0 ]]; then exit 2; fi
 set -- $PARSED
 
 PROVISION_CONFIG_PATH=
+PROVISION_CRAFT_PASSWORD=
+PROVISION_DROP_DB=false
+PROVISION_PHP_VER=7.4
 
 while true; do
   case "$1" in
@@ -29,6 +26,15 @@ while true; do
         echo "$1 is invalid"; exit 3
       fi
       PROVISION_CONFIG_PATH="$2"
+      shift 2; ;;
+    --craft-admin-password)
+      PROVISION_CRAFT_PASSWORD="$2"
+      shift 2; ;;
+    --drop)
+      PROVISION_DROP_DB=true
+      shift; ;;
+    --php)
+      PROVISION_PHP_VER="$2"
       shift 2; ;;
     --)
       shift; break; ;;
@@ -59,20 +65,6 @@ log 1 "Installing curl, wget & unzip"
 apt_get "curl" "wget" "unzip"
 
 
-# PHP
-echo "Installing php$PROVISION_PHP_VER..."
-apt-get -qq install \
-  php${PROVISION_PHP_VER}-curl \
-  php${PROVISION_PHP_VER}-dom \
-  php${PROVISION_PHP_VER}-fpm \
-  php${PROVISION_PHP_VER}-intl \
-  php${PROVISION_PHP_VER}-mbstring \
-  php${PROVISION_PHP_VER}-mysql \
-  php${PROVISION_PHP_VER}-zip \
-  php${PROVISION_PHP_VER}-xml \
-  php-imagick \
-> /dev/null
-
 # nginx
 echo "Installing nginx & certbot..."
 apt-get -qq install certbot nginx python3-certbot-nginx > /dev/null
@@ -84,10 +76,9 @@ apt-get -qq install mysql-server > /dev/null
 # Composer
 echo "Installing Composer..."
 composer_get
-
-
 # Update PHP config ####################################################
-echo "Updating php configuration..."
+log 1 "Updating php configuration..."
+php_get $PROVISION_PHP_VER
 php_mod_add $PROVISION_PHP_VER "vagrant" "config/php/php.ini"
 php_mod_enable $PROVISION_PHP_VER "vagrant"
 
