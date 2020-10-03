@@ -42,8 +42,10 @@ Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |vb|
     # vb.gui = true
     vb.memory = "4096"
-    vb.name = "${SCAFFOLDING_VAGRANT_NAME}"
+    vb.name = "${SCAFFOLDING_PROJECT_NAME}"
   end
 
-  config.vm.provision "shell", path: "config/provision.sh"
+  config.vm.provision "shell", path: "config/provision.sh", args: [
+    "--config-path=/vagrant/config"
+  ]
 end

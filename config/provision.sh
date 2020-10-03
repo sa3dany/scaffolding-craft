@@ -3,15 +3,47 @@ set -o errexit -o noclobber -o nounset -o pipefail
 export DEBIAN_FRONTEND="noninteractive"
 
 
-# change directory to config directory & load utils
-cd /vagrant
-source config/utils.sh
-
-
 # Provisioning variables ###############################################
 PROVISION_PHP_VER=7.4
 PROVISION_DROP_DB=false
 PROVISION_CRAFT_PASSWORD="$(password_gen)"
+
+
+# Parse args ###########################################################
+# SEE: https://stackoverflow.com/a/29754866/13037463
+OPTIONS=h
+LONG_OPTIONS=config-path:
+! PARSED=$(getopt --name "$0" \
+    --options="$OPTIONS" \
+    --longoptions=$LONG_OPTIONS \
+    -- "$@")
+if [[ ${PIPESTATUS[0]} -ne 0 ]]; then exit 2; fi
+set -- $PARSED
+
+PROVISION_CONFIG_PATH=
+
+while true; do
+  case "$1" in
+    --config-path)
+      if [ ! -f "$2" ]; then
+        echo "$1 is invalid"; exit 3
+      fi
+      PROVISION_CONFIG_PATH="$2"
+      shift 2; ;;
+    --)
+      shift; break; ;;
+    *)
+      echo "Invalid args"; exit 3; ;;
+  esac
+done
+
+
+# ! Change PWD #########################################################
+cd "$PROVISION_CONFIG_PATH"
+
+
+# Load utilities #######################################################
+source "utils.sh"
 
 
 # Set timezone #########################################################
