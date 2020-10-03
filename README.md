@@ -4,7 +4,7 @@ Scaffolding for a Craft CMS project
 
 ## Based on
 
-- [craftcms/craft v1.0.59](https://github.com/craftcms/craft)
+- [craftcms/craft v1.0.61](https://github.com/craftcms/craft)
 - [nystudio107/craft v2.3.9](https://github.com/nystudio107/craft)
 
 ## Notes

@@ -22,6 +22,7 @@ return [
     'allowUpdates' => (bool)App::env('ALLOW_UPDATES'),
     'backupOnUpdate' => (bool)App::env('BACKUP_ON_UPDATE'),
     'devMode' => (bool)App::env('DEV_MODE'),
+    'disallowRobots' => (bool)App::env('DISALLOW_ROBOTS'),
     'enableTemplateCaching' => (bool)App::env('ENABLE_TEMPLATE_CACHING'),
     'maxUploadFileSize' => App::env('MAX_UPLOAD_FILE_SIZE'),
     'runQueueAutomatically' => (bool)App::env('RUN_QUEUE_AUTOMATICALLY'),
