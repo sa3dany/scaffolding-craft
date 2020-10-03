@@ -17,7 +17,7 @@ if [[ ${PIPESTATUS[0]} -ne 0 ]]; then exit 2; fi
 set -- $PARSED
 
 PROVISION_CONFIG_PATH="$(dirname "$0")"
-PROVISION_CRAFT_ADMIN_PASSWORD=
+PROVISION_CRAFT_ADMIN_PASSWORD="$(password_gen)"
 PROVISION_CRAFT_PATH=
 PROVISION_DROP_DB=false
 PROVISION_EMAIL_HOSTNAME=
@@ -138,7 +138,7 @@ sudo --user=www-data --set-home \
 
 # Copy .env file
 log 1 'Importing .env file'
-cp "cms/local.env" "$PROVISION_CRAFT_PATH/.env"
+cp "../cms/.local.env" "$PROVISION_CRAFT_PATH/.env"
 
 # Set permissions
 set_permissions vagrant:www-data 774 "$PROVISION_CRAFT_PATH/.env"
@@ -161,7 +161,7 @@ if ! cms/craft install/check; then
       --username="$SCAFFOLDING_CRAFT_EMAIL" \
       --siteName="$SCAFFOLDING_CRAFT_SITE_NAME" \
       --siteUrl="$SCAFFOLDING_CRAFT_SITE_URL" \
-      --password="${PROVISION_CRAFT_ADMIN_PASSWORD:-(password_gen)}" \
+      --password="$PROVISION_CRAFT_ADMIN_PASSWORD" \
     > /dev/null
 
   echo "USERNAME: $SCAFFOLDING_CRAFT_EMAIL"
