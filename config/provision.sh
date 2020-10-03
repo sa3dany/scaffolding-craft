@@ -5,7 +5,7 @@ export DEBIAN_FRONTEND="noninteractive"
 
 # Parse args ###########################################################
 # SEE: https://stackoverflow.com/a/29754866/13037463
-OPTIONS=h
+OPTIONS=
 LONG_OPTIONS=config-path:,craft-admin-password:,domain-name:,drop,php:
 ! PARSED=$(getopt --name "$0" \
     --options="$OPTIONS" \
@@ -15,7 +15,7 @@ if [[ ${PIPESTATUS[0]} -ne 0 ]]; then exit 2; fi
 set -- $PARSED
 
 PROVISION_CONFIG_PATH="$(dirname "$0")"
-PROVISION_CRAFT_PASSWORD=
+PROVISION_CRAFT_ADMIN_PASSWORD=
 PROVISION_DROP_DB=false
 PROVISION_PHP_VER=7.4
 PROVISION_DOMAIN=localhost
@@ -29,7 +29,7 @@ while true; do
       PROVISION_CONFIG_PATH="$2"
       shift 2; ;;
     --craft-admin-password)
-      PROVISION_CRAFT_PASSWORD="$2"
+      PROVISION_CRAFT_ADMIN_PASSWORD="$2"
       shift 2; ;;
     --domain-name)
       PROVISION_DOMAIN="$2"
@@ -138,9 +138,9 @@ if ! cms/craft install/check; then
       --username="$SCAFFOLDING_CRAFT_EMAIL" \
       --siteName="$SCAFFOLDING_CRAFT_SITE_NAME" \
       --siteUrl="$SCAFFOLDING_CRAFT_SITE_URL" \
-      --password="${PROVISION_CRAFT_PASSWORD:-(password_gen)}" \
+      --password="${PROVISION_CRAFT_ADMIN_PASSWORD:-(password_gen)}" \
     > /dev/null
 
   echo "USERNAME: $SCAFFOLDING_CRAFT_EMAIL"
-  echo "PASSWORD: $PROVISION_CRAFT_PASSWORD"
+  echo "PASSWORD: $PROVISION_CRAFT_ADMIN_PASSWORD"
 fi
