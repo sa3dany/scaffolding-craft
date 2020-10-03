@@ -1,6 +1,5 @@
 #!/bin/bash
-set -o errexit
-set -o nounset
+set -o errexit -o noclobber -o nounset -o pipefail
 timedatectl set-timezone Asia/Riyadh
 export DEBIAN_FRONTEND="noninteractive"
 
