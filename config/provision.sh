@@ -6,7 +6,7 @@ export DEBIAN_FRONTEND="noninteractive"
 # Parse args ###########################################################
 # SEE: https://stackoverflow.com/a/29754866/13037463
 OPTIONS=
-LONG_OPTIONS="config-path:,craft-admin-password:,craft-path:,domain-name:,drop,php:,staging"
+LONG_OPTIONS="config-path:,craft-admin-password:,craft-path:,hostname:,drop,php:,staging"
 ! PARSED=$(getopt --name "$0" \
     --options="$OPTIONS" \
     --longoptions=$LONG_OPTIONS \
@@ -20,7 +20,7 @@ PROVISION_CRAFT_PATH=
 PROVISION_DROP_DB=false
 PROVISION_ENV=
 PROVISION_PHP_VER=7.4
-PROVISION_DOMAIN=localhost
+PROVISION_HOSTNAME=localhost
 
 while true; do
   case "$1" in
@@ -36,8 +36,8 @@ while true; do
     --craft-path)
       PROVISION_CRAFT_PATH="$2"
       shift 2; ;;
-    --domain-name)
-      PROVISION_DOMAIN="$2"
+    --hostname)
+      PROVISION_HOSTNAME="$2"
       shift 2; ;;
     --drop)
       PROVISION_DROP_DB=true
@@ -93,15 +93,20 @@ if [ ! -d "/etc/nginx/nginx-partials" ]; then
   mkdir "/etc/nginx/nginx-partials"
 fi
 cp "nginx/partials/"* "/etc/nginx/nginx-partials"
-export PROVISION_PHP_VER # -------------------------------- START EXPORT
-CONFIG="$(mktemp)" # ======================================== START FILE
-envsubst '$PROVISION_PHP_VER:$PROVISION_CRAFT_PATH' \
-  < "nginx/local.conf" > "$CONFIG"
-nginx_config_add "$PROVISION_DOMAIN" "$CONFIG"
-rm "$CONFIG" && unset CONFIG # ================================ END FILE
-export -n PROVISION_PHP_VER # ------------------------------- END EXPORT
+export PROVISION_PHP_VER PROVISION_HOSTNAME PROVISION_CRAFT_PATH
+  CONFIG="$(mktemp)"
+    if [ "$PROVISION_ENV" = "staging" ]; then
+      envsubst '$PROVISION_PHP_VER:$PROVISION_CRAFT_PATH' \
+        < "nginx/local.conf" > "$CONFIG"
+    else
+      envsubst '$PROVISION_PHP_VER:$PROVISION_HOSTNAME:$PROVISION_CRAFT_PATH' \
+        < "nginx/live.conf" > "$CONFIG"
+    fi
+    nginx_config_add "$PROVISION_HOSTNAME" "$CONFIG"
+  rm "$CONFIG" && unset CONFIG
+export -n PROVISION_PHP_VER PROVISION_HOSTNAME PROVISION_CRAFT_PATH
 nginx_config_disable_default
-nginx_config_enable "$PROVISION_DOMAIN"
+nginx_config_enable "$PROVISION_HOSTNAME"
 
 
 # Database setup #######################################################
