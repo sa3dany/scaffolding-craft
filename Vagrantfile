@@ -46,6 +46,8 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.provision "shell", path: "config/provision.sh", args: [
-    "--config-path=/vagrant/config"
+    "--config-path=/vagrant/config",
+    "--craft-path=/vagrant/cms",
+    "--php=7.4"
   ]
 end

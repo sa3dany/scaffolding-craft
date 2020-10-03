@@ -6,7 +6,7 @@ export DEBIAN_FRONTEND="noninteractive"
 # Parse args ###########################################################
 # SEE: https://stackoverflow.com/a/29754866/13037463
 OPTIONS=
-LONG_OPTIONS=config-path:,craft-admin-password:,domain-name:,drop,php:
+LONG_OPTIONS=config-path:,craft-admin-password:,craft-path:,domain-name:,drop,php:
 ! PARSED=$(getopt --name "$0" \
     --options="$OPTIONS" \
     --longoptions=$LONG_OPTIONS \
@@ -16,6 +16,7 @@ set -- $PARSED
 
 PROVISION_CONFIG_PATH="$(dirname "$0")"
 PROVISION_CRAFT_ADMIN_PASSWORD=
+PROVISION_CRAFT_PATH=
 PROVISION_DROP_DB=false
 PROVISION_PHP_VER=7.4
 PROVISION_DOMAIN=localhost
@@ -30,6 +31,9 @@ while true; do
       shift 2; ;;
     --craft-admin-password)
       PROVISION_CRAFT_ADMIN_PASSWORD="$2"
+      shift 2; ;;
+    --craft-path)
+      PROVISION_CRAFT_PATH="$2"
       shift 2; ;;
     --domain-name)
       PROVISION_DOMAIN="$2"
@@ -85,7 +89,7 @@ fi
 cp "nginx/partials/"* "/etc/nginx/nginx-partials"
 export PROVISION_PHP_VER # -------------------------------- START EXPORT
 CONFIG="$(mktemp)" # ======================================== START FILE
-envsubst '$PROVISION_PHP_VER' \
+envsubst '$PROVISION_PHP_VER:$PROVISION_CRAFT_PATH' \
   < "nginx/local.conf" > "$CONFIG"
 nginx_config_add "$PROVISION_DOMAIN" "$CONFIG"
 rm "$CONFIG" && unset CONFIG # ================================ END FILE
@@ -117,16 +121,16 @@ sudo --user=vagrant --set-home \
 
 # Copy .env file
 log 1 'Importing .env file'
-cp "cms/local.env" "/vagrant/cms/.env"
+cp "cms/local.env" "$PROVISION_CRAFT_PATH/.env"
 
 # Set permissions
-set_permissions vagrant:www-data 774 "/vagrant/cms/.env"
-set_permissions vagrant:www-data 774 "/vagrant/cms/composer".*
-set_permissions vagrant:www-data 774 "/vagrant/cms/config/license.key"
-set_permissions vagrant:www-data 774 "/vagrant/cms/config/project/"*
-set_permissions vagrant:www-data 774 "/vagrant/cms/storage/"*
+set_permissions vagrant:www-data 774 "$PROVISION_CRAFT_PATH/.env"
+set_permissions vagrant:www-data 774 "$PROVISION_CRAFT_PATH/composer".*
+set_permissions vagrant:www-data 774 "$PROVISION_CRAFT_PATH/config/license.key"
+set_permissions vagrant:www-data 774 "$PROVISION_CRAFT_PATH/config/project/"*
+set_permissions vagrant:www-data 774 "$PROVISION_CRAFT_PATH/storage/"*
 set_permissions vagrant:www-data 774 "/usr/local/lib/craft" # <--Vendor
-set_permissions vagrant:www-data 774 "/vagrant/cms/web/cpresources/"*
+set_permissions vagrant:www-data 774 "$PROVISION_CRAFT_PATH/web/cpresources/"*
 
 # Install craft
 log 1 "Craft setup"
