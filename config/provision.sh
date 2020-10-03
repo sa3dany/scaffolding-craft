@@ -82,7 +82,7 @@ cp "nginx/partials/"* "/etc/nginx/nginx-partials"
 export PROVISION_PHP_VER # -------------------------------- START EXPORT
 CONFIG="$(mktemp)" # ======================================== START FILE
 envsubst '$PROVISION_PHP_VER' \
-  < "config/nginx/default.conf" > "$CONFIG"
+  < "nginx/local.conf" > "$CONFIG"
 nginx_config_add "craft" "$CONFIG"
 rm "$CONFIG" && unset CONFIG # ================================ END FILE
 export -n PROVISION_PHP_VER # ------------------------------- END EXPORT
