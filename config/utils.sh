@@ -1,6 +1,24 @@
+R='\033[0;31m'
+G='\033[0;32m'
+B='\033[0;34m'
+
 apt_get () {
   apt-get -qq update > /dev/null
   apt-get -qq install $* > /dev/null
+}
+
+certbot_apply () {
+  certbot --agree-tos \
+    --domains $2 \
+    --email $3 \
+    --keep \
+    --redirect \
+    --$1 \
+    --quiet
+  certbot renew \
+    --dry-run \
+    --no-random-sleep-on-renew \
+    --quiet
 }
 
 composer_get () {
@@ -53,6 +71,10 @@ craft_create_project () {
   fi
 }
 
+import_env () {
+  export $(grep -v '^#' "$1" | xargs)
+}
+
 log () {
   for i in $(seq 1 $1); do
     printf "    "
@@ -75,6 +97,11 @@ mysql_db_create () {
     "CREATE DATABASE IF NOT EXISTS $1
       CHARACTER SET utf8
       COLLATE utf8_unicode_ci;"
+}
+
+mysql_get () {
+  apt-get -qq update > /dev/null
+  apt-get -qq install mysql-server > /dev/null
 }
 
 mysql_user_add () {
@@ -109,6 +136,26 @@ nginx_config_enable () {
   systemctl restart nginx
 }
 
+nginx_get () {
+  apt-get -qq update > /dev/null
+  apt-get -qq install certbot nginx python3-certbot-nginx > /dev/null
+}
+
+php_get () {
+  apt-get -qq update > /dev/null
+  apt-get -qq install \
+    php${1}-curl \
+    php${1}-dom \
+    php${1}-fpm \
+    php${1}-intl \
+    php${1}-mbstring \
+    php${1}-mysql \
+    php${1}-zip \
+    php${1}-xml \
+    php-imagick \
+  > /dev/null
+}
+
 php_mod_add () {
   local PHP_VERSION=$1
   local MOD_NAME="$2"
@@ -128,7 +175,7 @@ makeswap () {
   if [ ! -f /swapfile ]; then
     fallocate -l "$1" /swapfile
     chmod 600 /swapfile
-    mkswap /swapfile && swapon /swapfile
+    mkswap /swapfile > /dev/null && swapon /swapfile
     sysctl vm.swappiness=10 > /dev/null
     sysctl vm.vfs_cache_pressure=50 > /dev/null
     echo '/swapfile   none    swap    sw    0   0' >> /etc/fstab
@@ -146,13 +193,43 @@ password_gen () {
   head /dev/urandom | tr -dc A-Za-z0-9 | head -c12
 }
 
+postfix_get () {
+  apt-get -qq update > /dev/null
+  apt-get -qq install postfix > /dev/null
+}
+
+postfix_relay_to_gsuite () {
+  local origin=$1
+  local relayhost="smtp-relay.gmail.com"
+  local relayport="587"
+  local virtualmap="/etc/postfix/virtual"
+  # SEE: http://www.postfix.org/STANDARD_CONFIGURATION_README.html#null_client
+  # SEE: http://www.postfix.org/STANDARD_CONFIGURATION_README.html#some_local
+  postconf -e "myorigin = $origin"
+  postconf -e "relayhost = $relayhost:$relayport"
+  postconf -e 'inet_interfaces = loopback-only'
+  postconf -e 'mydestination ='
+  postconf -e 'virtual_alias_maps = hash:/etc/postfix/virtual'
+  printf "" > $virtualmap &&
+    echo "root   root@localhost" >> $virtualmap && \
+    echo "ubuntu ubuntu@localhost" >> $virtualmap && \
+  postmap /etc/postfix/virtual
+  systemctl restart postfix
+}
+
 set_permissions () {
   local owner=$1
   local mode=$2
-  local file=$3
-  if [ -d "$file" ] || [ -f "$file" ]; then
-    chown --recursive $owner $file
-    chmod --recursive $mode $file
-    find "$file" -type d -exec chmod +x {} \;
-  fi
+  shift 2
+  for file in "$@"
+  do
+    if [ -d "$file" ]; then
+      chown --recursive $owner $file
+      chmod --recursive $mode $file
+      find "$file" -type d -exec chmod +x {} \;
+    elif [ -f "$file" ]; then
+      chown $owner $file
+      chmod $mode $file
+    fi
+  done
 }
