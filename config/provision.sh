@@ -14,7 +14,7 @@ LONG_OPTIONS=config-path:,craft-admin-password:,drop,php:
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then exit 2; fi
 set -- $PARSED
 
-PROVISION_CONFIG_PATH=
+PROVISION_CONFIG_PATH="$(dirname "$0")"
 PROVISION_CRAFT_PASSWORD=
 PROVISION_DROP_DB=false
 PROVISION_PHP_VER=7.4
@@ -22,7 +22,7 @@ PROVISION_PHP_VER=7.4
 while true; do
   case "$1" in
     --config-path)
-      if [ ! -f "$2" ]; then
+      if [ ! -f "$2/utils.sh" ]; then
         echo "$1 is invalid"; exit 3
       fi
       PROVISION_CONFIG_PATH="$2"
