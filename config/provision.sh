@@ -52,7 +52,7 @@ while true; do
 done
 
 
-# ! Change PWD #########################################################
+# Change PWD & load utils ##############################################
 cd "$PROVISION_CONFIG_PATH"
 
 
@@ -60,15 +60,14 @@ cd "$PROVISION_CONFIG_PATH"
 source "utils.sh"
 
 
-# Set timezone #########################################################
+# General system setup #################################################
+# Set timezone
 timedatectl set-timezone Asia/Riyadh
 
-
-# Add some swap (1/4 of total memory) ##################################
+# Add some swap (1/4 of total memory)
 makeswap_auto
 
-
-# Dependencies #########################################################
+# Common dependencies
 log 1 "Installing curl, wget & unzip"
 apt_get "curl" "wget" "unzip"
 
@@ -80,7 +79,7 @@ php_mod_add $PROVISION_PHP_VER "provisioner" "php/php.ini"
 php_mod_enable $PROVISION_PHP_VER "provisioner"
 
 
-# Nginx config #########################################################
+# Web server setup #####################################################
 log 1 "Configuring NGINX"
 nginx_get
 if [ ! -d "/etc/nginx/nginx-partials" ]; then
