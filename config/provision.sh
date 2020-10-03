@@ -6,7 +6,9 @@ export DEBIAN_FRONTEND="noninteractive"
 # Parse args ###########################################################
 # SEE: https://stackoverflow.com/a/29754866/13037463
 OPTIONS=
-LONG_OPTIONS="config-path:,craft-admin-password:,craft-path:,hostname:,drop,php:,staging"
+LONG_OPTIONS="config-path:,craft-admin-password:,craft-path:,drop,php:,\
+email-hostname:,hostname:,staging"
+
 ! PARSED=$(getopt --name "$0" \
     --options="$OPTIONS" \
     --longoptions=$LONG_OPTIONS \
@@ -18,9 +20,10 @@ PROVISION_CONFIG_PATH="$(dirname "$0")"
 PROVISION_CRAFT_ADMIN_PASSWORD=
 PROVISION_CRAFT_PATH=
 PROVISION_DROP_DB=false
+PROVISION_EMAIL_HOSTNAME=
 PROVISION_ENV=
-PROVISION_PHP_VER=7.4
 PROVISION_HOSTNAME=localhost
+PROVISION_PHP_VER=7.4
 
 while true; do
   case "$1" in
@@ -35,6 +38,9 @@ while true; do
       shift 2; ;;
     --craft-path)
       PROVISION_CRAFT_PATH="$2"
+      shift 2; ;;
+    --email-hostname)
+      PROVISION_EMAIL_HOSTNAME="$2"
       shift 2; ;;
     --hostname)
       PROVISION_HOSTNAME="$2"
@@ -173,4 +179,29 @@ else
     ./craft clear-caches/all > /dev/null
   cd - > /dev/null
 
+fi
+
+
+# Email setup ##########################################################
+# Make sure to setup SMTP relay in G Suite with the website's static IP
+# SEE: https://support.google.com/a/answer/176600?hl=en
+if [ "$PROVISION_ENV" = "staging" ]; then
+  log 1 "POSTFIX setup through G Suite relay"
+
+  # validate if --email-hostname was set
+  if [ -z "$PROVISION_EMAIL_HOSTNAME" ]; then
+    echo "--email-hostname is required in non-local env"
+    exit 2
+  fi
+
+  # setup POSTFIX
+  postfix_get && postfix_relay_to_gsuite "meltblown.sa"
+
+  # test mail sending
+  cd "$PROVISION_CRAFT_PATH"
+    ./craft mailer/test \
+      --interactive=0 \
+      --to msaadany@iceweb.co \
+    > /dev/null
+  cd - > /dev/null
 fi
