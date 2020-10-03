@@ -1,6 +1,5 @@
 #!/bin/bash
 set -o errexit -o noclobber -o nounset -o pipefail
-timedatectl set-timezone Asia/Riyadh
 export DEBIAN_FRONTEND="noninteractive"
 
 
@@ -13,6 +12,10 @@ source config/utils.sh
 PROVISION_PHP_VER=7.4
 PROVISION_DROP_DB=false
 PROVISION_CRAFT_PASSWORD="$(password_gen)"
+
+
+# Set timezone #########################################################
+timedatectl set-timezone Asia/Riyadh
 
 
 # Add some swap ########################################################
