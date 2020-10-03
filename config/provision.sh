@@ -112,8 +112,8 @@ sudo --user=vagrant --set-home \
     install --no-dev
 
 # Copy .env file
-echo "Copying .env file..."
-cp "config/cms/local.env" "/vagrant/cms/.env"
+log 1 'Importing .env file'
+cp "cms/local.env" "/vagrant/cms/.env"
 
 # Set permissions
 set_permissions vagrant:www-data 774 "/vagrant/cms/.env"
@@ -134,7 +134,7 @@ if ! cms/craft install/check; then
       --username="$SCAFFOLDING_CRAFT_EMAIL" \
       --siteName="$SCAFFOLDING_CRAFT_SITE_NAME" \
       --siteUrl="$SCAFFOLDING_CRAFT_SITE_URL" \
-      --password="$PROVISION_CRAFT_PASSWORD" \
+      --password="${PROVISION_CRAFT_PASSWORD:-(password_gen)}" \
     > /dev/null
 
   echo "USERNAME: $SCAFFOLDING_CRAFT_EMAIL"
