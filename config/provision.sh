@@ -72,8 +72,8 @@ apt_get "curl" "wget" "unzip"
 # Update PHP config ####################################################
 log 1 "Updating php configuration..."
 php_get $PROVISION_PHP_VER
-php_mod_add $PROVISION_PHP_VER "vagrant" "config/php/php.ini"
-php_mod_enable $PROVISION_PHP_VER "vagrant"
+php_mod_add $PROVISION_PHP_VER "provisioner" "php/php.ini"
+php_mod_enable $PROVISION_PHP_VER "provisioner"
 
 
 # Nginx config #########################################################
