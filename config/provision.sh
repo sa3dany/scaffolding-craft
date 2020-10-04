@@ -6,14 +6,13 @@ export DEBIAN_FRONTEND="noninteractive"
 PROVISION_CONFIG_PATH="$(dirname "$0")"
 PROVISION_CRAFT_PATH=
 PROVISION_DROP_DB=false
-PROVISION_EMAIL_HOSTNAME=
 PROVISION_ENV=
 PROVISION_HOSTNAME=localhost
 PROVISION_PHP_VER=7.4
 
 # Parse args ###########################################################
 # SEE: https://stackoverflow.com/a/29754866/13037463
-OPTIONS="config-path:,craft-path:,drop,php:,email-hostname:,hostname:,staging"
+OPTIONS="config-path:,craft-path:,drop,php:,hostname:,staging"
 
 ! PARSED=$(getopt --name="$0" --options="" --longoptions=$OPTIONS -- "$@")
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then exit 2; fi
@@ -31,10 +30,6 @@ while true; do
     ;;
   --craft-path)
     PROVISION_CRAFT_PATH="$2"
-    shift 2
-    ;;
-  --email-hostname)
-    PROVISION_EMAIL_HOSTNAME="$2"
     shift 2
     ;;
   --hostname)
@@ -93,11 +88,21 @@ php_mod_enable $PROVISION_PHP_VER "cms"
 if [ "$PROVISION_ENV" = "staging" ] ||
   [ "$PROVISION_ENV" = "production" ]; then
   log 1 "POSTFIX setup through G Suite relay"
+
   if [ -z "$PROVISION_EMAIL_HOSTNAME" ]; then
     echo "--email-hostname is required in non-local env"
     exit 2
   fi
-  postfix_get && postfix_relay_to_gsuite "$PROVISION_EMAIL_HOSTNAME"
+
+  EMAIL_HOSTNAME="$(regexp_match \
+    "$PROVISION_HOSTNAME" '^(.*\.)?\K([^.]+)(\.[^.]+?)$')"
+  if [ -z "$EMAIL_HOSTNAME" ]; then
+    echo "Hostname $PROVISION_HOSTNAME is not a valid domain name"
+    exit 2
+  fi
+
+  postfix_get && postfix_relay_to_gsuite "$EMAIL_HOSTNAME"
+  unset EMAIL_HOSTNAME
 fi
 
 # Main Tasks ###########################################################

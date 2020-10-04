@@ -217,6 +217,10 @@ postfix_relay_to_gsuite() {
   systemctl restart postfix
 }
 
+regexp_match() {
+  echo "$1" | grep --perl-regexp --only-matching "$2"
+}
+
 set_permissions() {
   local owner=$1
   local mode=$2
