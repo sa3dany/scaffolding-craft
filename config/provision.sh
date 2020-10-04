@@ -115,7 +115,7 @@ download_craft() {
   log 1 "Performing composer install"
   composer_get
   cd "$PROVISION_CRAFT_PATH"
-  sudo --user=www-data --set-home \
+  sudo --user=www-data \
     composer --no-cache --quiet install --no-dev
   cd - >/dev/null
 }
@@ -185,10 +185,7 @@ run_the_setup() {
   sudo --user=www-data \
     ./craft install \
     --interactive=0 \
-    --email="$SCAFFOLDING_CRAFT_EMAIL" \
-    --username="$SCAFFOLDING_CRAFT_EMAIL" \
-    --siteName="$SCAFFOLDING_CRAFT_SITE_NAME" \
-    --siteUrl="$SCAFFOLDING_CRAFT_SITE_URL" \
+    --email="msaadany@iceweb.co" \
     --password=$password \
     >/dev/null
   cd - >/dev/null
@@ -200,19 +197,29 @@ run_the_setup() {
 clear_all_caches() {
   log 1 'Clearing Craft CMS caches'
   cd "$PROVISION_CRAFT_PATH"
-  ./craft clear-caches/all >/dev/null
+  sudo --user=www-data \
+    ./craft clear-caches/all >/dev/null
+  cd - >/dev/null
+}
+
+project_config_apply() {
+  cd "$PROVISION_CRAFT_PATH"
+  sudo --user=www-data \
+    ./craft project-config/apply
   cd - >/dev/null
 }
 
 mailer_test() {
   log 1 'Test mail sending'
   cd "$PROVISION_CRAFT_PATH"
-  ./craft mailer/test --interactive=0 --to msaadany@iceweb.co >/dev/null
+  sudo --user=www-data \
+    ./craft mailer/test --interactive=0 --to msaadany@iceweb.co >/dev/null
   cd - >/dev/null
 }
 
 # Check if Craft CMS is already installed ##############################
-if ! "$PROVISION_CRAFT_PATH"/craft install/check; then
+if ! sudo --user=www-data \
+  "$PROVISION_CRAFT_PATH"/craft install/check; then
 
   # Copy .env file
   log 1 'Importing .env file'
@@ -231,6 +238,7 @@ else
   create_a_database
   setup_the_web_server
   run_the_setup
+  project_config_apply
   clear_all_caches
 
 fi
