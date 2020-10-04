@@ -6,7 +6,7 @@ export DEBIAN_FRONTEND="noninteractive"
 PROVISION_CONFIG_PATH="$(dirname "$0")"
 PROVISION_CRAFT_PATH=
 PROVISION_DROP_DB=false
-PROVISION_ENV=
+PROVISION_ENV=local
 PROVISION_HOSTNAME=
 PROVISION_PHP_VER=7.4
 
@@ -45,7 +45,7 @@ while true; do
     shift 2
     ;;
   --staging)
-    if [ ! -z "$PROVISION_ENV" ]; then
+    if [ "$PROVISION_ENV" = "production" ]; then
       echo "only one env modifier is allowed at a time"
       exit 3
     fi
@@ -88,7 +88,7 @@ log 1 "Installing curl, wget & unzip"
 apt_get "curl" "wget" "unzip"
 
 # Update PHP config ####################################################
-log 1 "Updating php configuration..."
+log 1 "Updating php configuration"
 php_get $PROVISION_PHP_VER
 php_mod_add $PROVISION_PHP_VER "cms" "php/php.ini"
 php_mod_enable $PROVISION_PHP_VER "cms"
@@ -117,6 +117,14 @@ if [ "$PROVISION_ENV" = "staging" ] ||
 fi
 
 # Main Tasks ###########################################################
+remove_existing_env() {
+  if [ -f "$PROVISION_CRAFT_PATH/.env" ]; then
+    log 1 "Removing existing .env file"
+    rm "$PROVISION_CRAFT_PATH/.env"
+    # sudo --user=www-data touch "$PROVISION_CRAFT_PATH/.env"
+  fi
+}
+
 download_craft() {
   if [ ! -d "/usr/local/lib/craft" ]; then
     mkdir --mode 774 --parents "/usr/local/lib/craft"
@@ -128,6 +136,39 @@ download_craft() {
   sudo --user=www-data \
     composer --no-cache --quiet install --no-dev
   cd - >/dev/null
+}
+
+generate_app_id() {
+  cd "$PROVISION_CRAFT_PATH"
+  sudo --user=www-data \
+    ./craft setup/app-id --interactive 0
+  cd - >/dev/null
+}
+
+generate_security_key() {
+  cd "$PROVISION_CRAFT_PATH"
+  sudo --user=www-data \
+    ./craft setup/security-key --interactive 0
+  cd - >/dev/null
+}
+
+save_app_id_and_security_key() {
+  log 1 "Saving APP_ID & SECURITY_KEY"
+  export $(cat "$PROVISION_CRAFT_PATH/.env" | xargs)
+  echo "APP_ID=$APP_ID" >>"cms/.env"
+  echo "SECURITY_KEY=$SECURITY_KEY" >>"cms/.env"
+  export -n $(cat "$PROVISION_CRAFT_PATH/.env" | xargs)
+}
+
+generate_env_file() {
+  log 1 'Generating .env file'
+  local ASSETS_URL="http://$PROVISION_HOSTNAME"
+  local SITE_URL="http://$PROVISION_HOSTNAME"
+  export ASSETS_URL SITE_URL
+  env $(cat "cms/.env" | xargs) \
+    envsubst '$APP_ID:$SECURITY_KEY:$ASSETS_URL:$SITE_URL' \
+    <cms/.$PROVISION_ENV.env >|"$PROVISION_CRAFT_PATH/.env"
+  export -n ASSETS_URL SITE_URL
 }
 
 set_the_file_permissions() {
@@ -234,11 +275,15 @@ mailer_test() {
 if ! sudo --user=www-data \
   "$PROVISION_CRAFT_PATH"/craft install/check; then
 
-  # Copy .env file
-  log 1 'Importing .env file'
-  cp "cms/.local.env" "$PROVISION_CRAFT_PATH/.env"
-
+  remove_existing_env
   download_craft
+  generate_security_key
+  generate_app_id
+  save_app_id_and_security_key
+  generate_env_file
+
+  exit
+
   set_the_file_permissions
   create_a_database
   setup_the_web_server
