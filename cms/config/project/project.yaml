@@ -1,7 +1,7 @@
 dateModified: 0
 email:
   fromEmail: support@iceweb.co
-  fromName: Craft CMS
+  fromName: 'Craft CMS'
   transportType: craft\mail\transportadapters\Sendmail
 plugins:
   aws-s3:

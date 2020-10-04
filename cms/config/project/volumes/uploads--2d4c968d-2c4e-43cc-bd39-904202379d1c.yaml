@@ -30,7 +30,7 @@ fieldLayouts:
         sortOrder: 1
 handle: uploads
 hasUrls: true
-name: 'Uploads'
+name: Uploads
 settings:
   addSubfolderToRootUrl: '1'
   autoFocalPoint: ''
