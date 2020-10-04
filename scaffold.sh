@@ -28,6 +28,7 @@ export SCAFFOLDING_CRAFT_SITE_URL="http://www.site.test"
 export SCAFFOLDING_CRAFT_EMAIL="msaadany@iceweb.co"
 export SCAFFOLDING_CRAFT_APP_ID="$(password_gen)"
 export SCAFFOLDING_CRAFT_SECURITY_KEY="$(password_gen)"
+export SCAFFOLDING_PROJECT_NAME="" # <-- lowercase, no spaces allowed
 
 # Validate variables ###################################################
 if [ -z "${SCAFFOLDING_VAGRANT_IP:-}" ] ||
@@ -36,7 +37,8 @@ if [ -z "${SCAFFOLDING_VAGRANT_IP:-}" ] ||
   [ -z "${SCAFFOLDING_CRAFT_SITE_URL:-}" ] ||
   [ -z "${SCAFFOLDING_CRAFT_EMAIL:-}" ] ||
   [ -z "${SCAFFOLDING_CRAFT_APP_ID:-}" ] ||
-  [ -z "${SCAFFOLDING_CRAFT_SECURITY_KEY:-}" ]; then
+  [ -z "${SCAFFOLDING_CRAFT_SECURITY_KEY:-}" ] ||
+  [ -z "${SCAFFOLDING_PROJECT_NAME:-}" ]; then
   echo >&2 -e "ERROR\tSome variables not set or empty" &&
     exit 1
 fi
