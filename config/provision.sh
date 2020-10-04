@@ -81,10 +81,8 @@ source "utils.sh"
 # General system setup #################################################
 # Set timezone
 timedatectl set-timezone Asia/Riyadh
-
 # Add some swap (1/4 of total memory)
 makeswap_auto
-
 # Common dependencies
 log 1 "Installing curl, wget & unzip"
 apt_get "curl" "wget" "unzip"
@@ -92,89 +90,98 @@ apt_get "curl" "wget" "unzip"
 # Update PHP config ####################################################
 log 1 "Updating php configuration..."
 php_get $PROVISION_PHP_VER
-php_mod_add $PROVISION_PHP_VER "provisioner" "php/php.ini"
-php_mod_enable $PROVISION_PHP_VER "provisioner"
+php_mod_add $PROVISION_PHP_VER "cms" "php/php.ini"
+php_mod_enable $PROVISION_PHP_VER "cms"
 
-# Web server setup #####################################################
-log 1 "Configuring NGINX"
-nginx_get
-
-# install partials
-if [ ! -d "/etc/nginx/nginx-partials" ]; then
-  mkdir "/etc/nginx/nginx-partials"
-fi
-cp "nginx/partials/"* "/etc/nginx/nginx-partials"
-
-# add host config
-export PROVISION_PHP_VER PROVISION_HOSTNAME PROVISION_CRAFT_PATH
-CONFIG="$(mktemp)"
-if [ "$PROVISION_ENV" = "staging" ]; then
-  envsubst '$PROVISION_PHP_VER:$PROVISION_CRAFT_PATH' \
-    <"nginx/local.conf" >"$CONFIG"
-else
-  envsubst '$PROVISION_PHP_VER:$PROVISION_HOSTNAME:$PROVISION_CRAFT_PATH' \
-    <"nginx/live.conf" >"$CONFIG"
-fi
-nginx_config_add "$PROVISION_HOSTNAME" "$CONFIG"
-rm "$CONFIG" && unset CONFIG
-export -n PROVISION_PHP_VER PROVISION_HOSTNAME PROVISION_CRAFT_PATH
-
-# enable host config
-nginx_config_disable_default
-nginx_config_enable "$PROVISION_HOSTNAME"
-
-# Database setup #######################################################
-log 1 "MySQL setup"
-mysql_get
-
-# Drop DB if requested
-if [ "$PROVISION_DROP_DB" = true ]; then
-  echo "Dropping existing database (if any)..."
-  mysql_db_drop "cms"
+# Email setup ##########################################################
+# Make sure to setup SMTP relay in G Suite with the website's static IP
+# SEE: https://support.google.com/a/answer/176600?hl=en
+if [ "$PROVISION_ENV" = "staging" || "$PROVISION_ENV" = "production" ]; then
+  log 1 "POSTFIX setup through G Suite relay"
+  if [ -z "$PROVISION_EMAIL_HOSTNAME" ]; then
+    echo "--email-hostname is required in non-local env"
+    exit 2
+  fi
+  postfix_get && postfix_relay_to_gsuite "$PROVISION_EMAIL_HOSTNAME"
 fi
 
-# Add DB, user & set permissions
-mysql_db_create "cms"
-mysql_user_add "cms_user" "cms_password"
-mysql_user_grant "cms_user" "cms"
+# Main Tasks ###########################################################
+download_craft() {
+  if [ ! -d "/usr/local/lib/craft" ]; then
+    mkdir --mode 774 --parents "/usr/local/lib/craft"
+  fi
+  set_permissions www-data:www-data 774 "/usr/local/lib/craft"
+  log 1 "Performing composer install"
+  composer_get
+  cd "$PROVISION_CRAFT_PATH"
+  sudo --user=www-data --set-home \
+    composer --no-cache --quiet install --no-dev
+  cd - >/dev/null
+}
 
-# Craft CMS Setup ######################################################
-# create `vendor` dir if it does not exist
-if [ ! -d "/usr/local/lib/craft" ]; then
-  mkdir --mode 774 --parents "/usr/local/lib/craft"
-fi
+set_the_file_permissions() {
+  local owner=www-data:www-data
+  local mode=774
+  local path="$PROVISION_CRAFT_PATH"
+  set_permissions $owner $mode "$path/.env"
+  set_permissions $owner $mode "$path/composer".*
+  set_permissions $owner $mode "$path/config/license.key"
+  set_permissions $owner $mode "$path/config/project/"*
+  set_permissions $owner $mode "$path/storage/"*
+  set_permissions $owner $mode "$path/vendor"
+  set_permissions $owner $mode "$path/web/cpresources/"*
+}
 
-# Set permissions of `vendor` dir
-set_permissions www-data:www-data 774 "/usr/local/lib/craft"
+create_a_database() {
+  log 1 "MySQL setup"
+  mysql_get
+  if [ "$PROVISION_DROP_DB" = true ]; then
+    echo "Dropping existing database (if any)..."
+    mysql_db_drop "cms"
+  fi
+  mysql_db_create "cms"
+  mysql_user_add "cms_user" "cms_password"
+  mysql_user_grant "cms_user" "cms"
+}
 
-# Composer install
-log 1 "Performing composer install"
-composer_get
-cd "$PROVISION_CRAFT_PATH"
-sudo --user=www-data --set-home \
-  composer --no-cache --quiet install --no-dev
-cd - >/dev/null
+setup_the_web_server() {
+  log 1 "Configuring NGINX"
 
-# Copy .env file
-log 1 'Importing .env file'
-cp "../cms/.local.env" "$PROVISION_CRAFT_PATH/.env"
+  nginx_get
 
-# Set the file permissions of the Craft dir
-set_permissions www-data:www-data 774 "$PROVISION_CRAFT_PATH/.env"
-set_permissions www-data:www-data 774 "$PROVISION_CRAFT_PATH/composer".*
-set_permissions www-data:www-data 774 "$PROVISION_CRAFT_PATH/config/license.key"
-set_permissions www-data:www-data 774 "$PROVISION_CRAFT_PATH/config/project/"*
-set_permissions www-data:www-data 774 "$PROVISION_CRAFT_PATH/storage/"*
-set_permissions www-data:www-data 774 "/usr/local/lib/craft" # <--Vendor
-set_permissions www-data:www-data 774 "$PROVISION_CRAFT_PATH/web/cpresources/"*
+  if [ ! -d /etc/nginx/nginx-partials ]; then
+    mkdir /etc/nginx/nginx-partials
+  fi
+  cp nginx/partials/* /etc/nginx/nginx-partials
 
-# Install Craft CMS if not installed. Otherwise, clear cache
-if ! cms/craft install/check; then
+  export PROVISION_PHP_VER PROVISION_HOSTNAME PROVISION_CRAFT_PATH
+  CONFIG="$(mktemp)"
 
-  # Install Craft CMS
+  if [ "$PROVISION_ENV" = staging ]; then
+    envsubst '$PROVISION_PHP_VER:$PROVISION_CRAFT_PATH' \
+      <nginx/local.conf >"$CONFIG"
+  else
+    envsubst '$PROVISION_PHP_VER:$PROVISION_HOSTNAME:$PROVISION_CRAFT_PATH' \
+      <nginx/live.conf >"$CONFIG"
+  fi
+
+  nginx_config_add "$PROVISION_HOSTNAME" "$CONFIG"
+  rm "$CONFIG" && unset CONFIG
+  export -n PROVISION_PHP_VER PROVISION_HOSTNAME PROVISION_CRAFT_PATH
+
+  nginx_config_disable_default
+  nginx_config_enable "$PROVISION_HOSTNAME"
+
+  if [ "$PROVISION_ENV" = staging ]; then
+    certbot_apply nginx "$PROVISION_HOSTNAME" "msaadany@iceweb.co"
+  fi
+}
+
+run_the_setup() {
   log 1 "Installing Craft CMS"
+  cd "$PROVISION_CRAFT_PATH"
   sudo --user=www-data \
-    cms/craft install \
+    ./craft install \
     --interactive=0 \
     --email="$SCAFFOLDING_CRAFT_EMAIL" \
     --username="$SCAFFOLDING_CRAFT_EMAIL" \
@@ -182,41 +189,46 @@ if ! cms/craft install/check; then
     --siteUrl="$SCAFFOLDING_CRAFT_SITE_URL" \
     --password="$PROVISION_CRAFT_ADMIN_PASSWORD" \
     >/dev/null
-
+  cd - >/dev/null
   echo "USERNAME: $SCAFFOLDING_CRAFT_EMAIL"
   echo "PASSWORD: $PROVISION_CRAFT_ADMIN_PASSWORD"
+}
+
+clear_all_caches() {
+  log 1 'Clearing Craft CMS caches'
+  cd "$PROVISION_CRAFT_PATH"
+  ./craft clear-caches/all >/dev/null
+  cd - >/dev/null
+}
+
+mailer_test() {
+  log 1 'Test mail sending'
+  cd "$PROVISION_CRAFT_PATH"
+  ./craft mailer/test --interactive=0 --to msaadany@iceweb.co >/dev/null
+  cd - >/dev/null
+}
+
+# Check if Craft CMS is already installed ##############################
+if ! cms/craft install/check; then
+
+  # Copy .env file
+  log 1 'Importing .env file'
+  cp "cms/.local.env" "$PROVISION_CRAFT_PATH/.env"
+
+  download_craft
+  set_the_file_permissions
+  create_a_database
+  setup_the_web_server
+  run_the_setup
 
 else
 
-  # Clear craft caches
-  log 1 'Clearing Craft CMS caches'
-  cd "$PROVISION_CRAFT_PATH"
-  ./craft install/check >/dev/null
-  ./craft clear-caches/all >/dev/null
-  cd - >/dev/null
+  download_craft
+  set_the_file_permissions
+  setup_the_web_server
+  clear_all_caches
 
 fi
 
-# Email setup ##########################################################
-# Make sure to setup SMTP relay in G Suite with the website's static IP
-# SEE: https://support.google.com/a/answer/176600?hl=en
-if [ "$PROVISION_ENV" = "staging" ]; then
-  log 1 "POSTFIX setup through G Suite relay"
-
-  # validate if --email-hostname was set
-  if [ -z "$PROVISION_EMAIL_HOSTNAME" ]; then
-    echo "--email-hostname is required in non-local env"
-    exit 2
-  fi
-
-  # setup POSTFIX
-  postfix_get && postfix_relay_to_gsuite "meltblown.sa"
-
-  # test mail sending
-  cd "$PROVISION_CRAFT_PATH"
-  ./craft mailer/test \
-    --interactive=0 \
-    --to msaadany@iceweb.co \
-    >/dev/null
-  cd - >/dev/null
-fi
+# Misc tasks ###########################################################
+mailer_test

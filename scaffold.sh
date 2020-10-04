@@ -46,7 +46,6 @@ fi
 # Set variables into files #############################################
 echo "Setting up scaffolding file with your config variables ..."
 subst "Vagrantfile"
-subst "cms\composer.json"
 subst "config/provision.sh"
 subst "config/cms/.local.env"
 subst "config/cms/.staging.env"

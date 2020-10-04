@@ -232,16 +232,3 @@ set_permissions() {
     fi
   done
 }
-
-set_permissions_craft() {
-  local owner=$1
-  local mode=$2
-  local path=$3
-  set_permissions $owner $mode "$path/.env"
-  set_permissions $owner $mode "$path/composer".*
-  set_permissions $owner $mode "$path/config/license.key"
-  set_permissions $owner $mode "$path/config/project/"*
-  set_permissions $owner $mode "$path/storage/"*
-  set_permissions $owner $mode "$path/vendor"
-  set_permissions $owner $mode "$path/web/cpresources/"*
-}
