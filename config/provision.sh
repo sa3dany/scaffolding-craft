@@ -4,7 +4,7 @@ export DEBIAN_FRONTEND="noninteractive"
 
 # Variables ############################################################
 PROVISION_CONFIG_PATH="$(dirname "$0")"
-PROVISION_CRAFT_ADMIN_PASSWORD="$(password_gen)"
+PROVISION_CRAFT_ADMIN_PASSWORD=
 PROVISION_CRAFT_PATH=
 PROVISION_DROP_DB=false
 PROVISION_EMAIL_HOSTNAME=
@@ -17,10 +17,10 @@ PROVISION_PHP_VER=7.4
 OPTIONS="config-path:,craft-admin-password:,craft-path:,drop,php:,\
 email-hostname:,hostname:,staging"
 
-! PARSED=$(getopt --name="$0" --longoptions=$OPTIONS -- "$@")
+! PARSED=$(getopt --name="$0" --options="" --longoptions=$OPTIONS -- "$@")
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then exit 2; fi
 
-set -- $PARSED
+eval set -- "$PARSED"
 while true; do
   case "$1" in
   --config-path)
@@ -96,7 +96,8 @@ php_mod_enable $PROVISION_PHP_VER "cms"
 # Email setup ##########################################################
 # Make sure to setup SMTP relay in G Suite with the website's static IP
 # SEE: https://support.google.com/a/answer/176600?hl=en
-if [ "$PROVISION_ENV" = "staging" || "$PROVISION_ENV" = "production" ]; then
+if [ "$PROVISION_ENV" = "staging" ] ||
+  [ "$PROVISION_ENV" = "production" ]; then
   log 1 "POSTFIX setup through G Suite relay"
   if [ -z "$PROVISION_EMAIL_HOSTNAME" ]; then
     echo "--email-hostname is required in non-local env"
@@ -158,11 +159,11 @@ setup_the_web_server() {
   CONFIG="$(mktemp)"
 
   if [ "$PROVISION_ENV" = staging ]; then
-    envsubst '$PROVISION_PHP_VER:$PROVISION_CRAFT_PATH' \
-      <nginx/local.conf >"$CONFIG"
-  else
     envsubst '$PROVISION_PHP_VER:$PROVISION_HOSTNAME:$PROVISION_CRAFT_PATH' \
-      <nginx/live.conf >"$CONFIG"
+      <nginx/live.conf >|"$CONFIG"
+  else
+    envsubst '$PROVISION_PHP_VER:$PROVISION_CRAFT_PATH' \
+      <nginx/local.conf >|"$CONFIG"
   fi
 
   nginx_config_add "$PROVISION_HOSTNAME" "$CONFIG"
@@ -179,6 +180,7 @@ setup_the_web_server() {
 
 run_the_setup() {
   log 1 "Installing Craft CMS"
+  local password="${PROVISION_CRAFT_ADMIN_PASSWORD:-$(password_gen)}"
   cd "$PROVISION_CRAFT_PATH"
   sudo --user=www-data \
     ./craft install \
@@ -187,11 +189,12 @@ run_the_setup() {
     --username="$SCAFFOLDING_CRAFT_EMAIL" \
     --siteName="$SCAFFOLDING_CRAFT_SITE_NAME" \
     --siteUrl="$SCAFFOLDING_CRAFT_SITE_URL" \
-    --password="$PROVISION_CRAFT_ADMIN_PASSWORD" \
+    --password=$password \
     >/dev/null
   cd - >/dev/null
-  echo "USERNAME: $SCAFFOLDING_CRAFT_EMAIL"
-  echo "PASSWORD: $PROVISION_CRAFT_ADMIN_PASSWORD"
+  echo "Craft login details:"
+  echo "  username: msaadany@iceweb.co"
+  echo "  password: $password"
 }
 
 clear_all_caches() {
@@ -209,7 +212,7 @@ mailer_test() {
 }
 
 # Check if Craft CMS is already installed ##############################
-if ! cms/craft install/check; then
+if ! "$PROVISION_CRAFT_PATH"/craft install/check; then
 
   # Copy .env file
   log 1 'Importing .env file'
@@ -225,10 +228,15 @@ else
 
   download_craft
   set_the_file_permissions
+  create_a_database
   setup_the_web_server
+  run_the_setup
   clear_all_caches
 
 fi
 
 # Misc tasks ###########################################################
-mailer_test
+if [ "$PROVISION_ENV" = "staging" ] ||
+  [ "$PROVISION_ENV" = "production" ]; then
+  mailer_test
+fi
