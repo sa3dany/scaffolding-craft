@@ -24,18 +24,14 @@ function subst() {
 # Please set **all** the varialbes below
 export SCAFFOLDING_VAGRANT_IP=""
 export SCAFFOLDING_VAGRANT_NAME=""
-export SCAFFOLDING_CRAFT_SITE_NAME=""
 export SCAFFOLDING_CRAFT_SITE_URL="http://www.site.test"
-export SCAFFOLDING_CRAFT_EMAIL="msaadany@iceweb.co"
 export SCAFFOLDING_CRAFT_APP_ID="$(password_gen)"
 export SCAFFOLDING_CRAFT_SECURITY_KEY="$(password_gen)"
 
 # Validate variables ###################################################
 if [ -z "${SCAFFOLDING_VAGRANT_IP:-}" ] ||
   [ -z "${SCAFFOLDING_VAGRANT_NAME:-}" ] ||
-  [ -z "${SCAFFOLDING_CRAFT_SITE_NAME:-}" ] ||
   [ -z "${SCAFFOLDING_CRAFT_SITE_URL:-}" ] ||
-  [ -z "${SCAFFOLDING_CRAFT_EMAIL:-}" ] ||
   [ -z "${SCAFFOLDING_CRAFT_APP_ID:-}" ] ||
   [ -z "${SCAFFOLDING_CRAFT_SECURITY_KEY:-}" ]; then
   echo >&2 -e "ERROR\tSome variables not set or empty" &&
@@ -45,7 +41,6 @@ fi
 # Set variables into files #############################################
 echo "Setting up scaffolding file with your config variables ..."
 subst "Vagrantfile"
-subst "config/provision.sh"
 subst "config/cms/.local.env"
 subst "config/cms/.staging.env"
 subst "config/cms/.production.env"

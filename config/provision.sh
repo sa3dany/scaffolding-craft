@@ -4,7 +4,6 @@ export DEBIAN_FRONTEND="noninteractive"
 
 # Variables ############################################################
 PROVISION_CONFIG_PATH="$(dirname "$0")"
-PROVISION_CRAFT_ADMIN_PASSWORD=
 PROVISION_CRAFT_PATH=
 PROVISION_DROP_DB=false
 PROVISION_EMAIL_HOSTNAME=
@@ -14,8 +13,7 @@ PROVISION_PHP_VER=7.4
 
 # Parse args ###########################################################
 # SEE: https://stackoverflow.com/a/29754866/13037463
-OPTIONS="config-path:,craft-admin-password:,craft-path:,drop,php:,\
-email-hostname:,hostname:,staging"
+OPTIONS="config-path:,craft-path:,drop,php:,email-hostname:,hostname:,staging"
 
 ! PARSED=$(getopt --name="$0" --options="" --longoptions=$OPTIONS -- "$@")
 if [[ ${PIPESTATUS[0]} -ne 0 ]]; then exit 2; fi
@@ -29,10 +27,6 @@ while true; do
       exit 3
     fi
     PROVISION_CONFIG_PATH="$2"
-    shift 2
-    ;;
-  --craft-admin-password)
-    PROVISION_CRAFT_ADMIN_PASSWORD="$2"
     shift 2
     ;;
   --craft-path)
@@ -180,13 +174,13 @@ setup_the_web_server() {
 
 run_the_setup() {
   log 1 "Installing Craft CMS"
-  local password="${PROVISION_CRAFT_ADMIN_PASSWORD:-$(password_gen)}"
+  local password="$(password_gen)"
   cd "$PROVISION_CRAFT_PATH"
   sudo --user=www-data \
     ./craft install \
     --interactive=0 \
     --email="msaadany@iceweb.co" \
-    --password=$password \
+    --password="$password" \
     >/dev/null
   cd - >/dev/null
   echo "Craft login details:"
@@ -210,11 +204,14 @@ project_config_apply() {
 }
 
 mailer_test() {
-  log 1 'Test mail sending'
-  cd "$PROVISION_CRAFT_PATH"
-  sudo --user=www-data \
-    ./craft mailer/test --interactive=0 --to msaadany@iceweb.co >/dev/null
-  cd - >/dev/null
+  if [ "$PROVISION_ENV" = "staging" ] ||
+    [ "$PROVISION_ENV" = "production" ]; then
+    log 1 'Test mail sending'
+    cd "$PROVISION_CRAFT_PATH"
+    sudo --user=www-data \
+      ./craft mailer/test --interactive=0 --to msaadany@iceweb.co >/dev/null
+    cd - >/dev/null
+  fi
 }
 
 # Check if Craft CMS is already installed ##############################
@@ -230,6 +227,9 @@ if ! sudo --user=www-data \
   create_a_database
   setup_the_web_server
   run_the_setup
+  project_config_apply
+  clear_all_caches
+  mailer_test
 
 else
 
@@ -240,11 +240,6 @@ else
   run_the_setup
   project_config_apply
   clear_all_caches
-
-fi
-
-# Misc tasks ###########################################################
-if [ "$PROVISION_ENV" = "staging" ] ||
-  [ "$PROVISION_ENV" = "production" ]; then
   mailer_test
+
 fi

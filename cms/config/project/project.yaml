@@ -15,7 +15,7 @@ plugins:
 system:
   edition: solo
   live: true
-  name: $SYSTEM_NAME
+  name: CMS
   schemaVersion: 3.5.13
   timeZone: Asia/Riyadh
 users:
