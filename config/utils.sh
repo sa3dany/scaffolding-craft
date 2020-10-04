@@ -1,6 +1,7 @@
 R='\033[0;31m'
 G='\033[0;32m'
 B='\033[0;34m'
+NC='\033[0m'
 
 apt_get() {
   apt-get -qq update >/dev/null
@@ -81,6 +82,14 @@ log() {
   done
   shift
   echo "$@"
+}
+
+log_colorize() {
+  echo -e "$1" "$2" "$NC"
+}
+
+log_error() {
+  log_colorize >&2 "$R" "$1"
 }
 
 mysql_db_import() {

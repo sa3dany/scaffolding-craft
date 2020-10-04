@@ -7,7 +7,7 @@ PROVISION_CONFIG_PATH="$(dirname "$0")"
 PROVISION_CRAFT_PATH=
 PROVISION_DROP_DB=false
 PROVISION_ENV=
-PROVISION_HOSTNAME=localhost
+PROVISION_HOSTNAME=
 PROVISION_PHP_VER=7.4
 
 # Parse args ###########################################################
@@ -64,8 +64,19 @@ while true; do
 done
 
 # Change PWD & load utils ##############################################
+if [ ! -f "$PROVISION_CONFIG_PATH/utils.sh" ]; then
+  echo -e '\033[0;31m' "--config-dir is invalid" '\033[0m'
+  exit 3
+fi
 cd "$PROVISION_CONFIG_PATH"
+# ! Cannot use utility function before this point
 source "utils.sh"
+
+# Sanity checks ########################################################
+if [ -z "$PROVISION_HOSTNAME" ]; then
+  log_error "--hostname is required"
+  exit 3
+fi
 
 # General system setup #################################################
 # Set timezone
