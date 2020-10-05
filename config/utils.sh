@@ -222,7 +222,9 @@ makeswap_auto() {
 }
 
 password_gen() {
-  head /dev/urandom | tr -dc A-Za-z0-9 | head -c12
+  local charSet='A-Za-z0-9-_'
+  head /dev/urandom | tr --delete --complement $charSet |
+    head --bytes=${1:-12}
 }
 
 postfix_get() {

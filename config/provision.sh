@@ -1,306 +1,287 @@
 #!/bin/bash
 set -o errexit -o noclobber -o nounset -o pipefail
+# set -0 xtrace # uncomment to debug
 export DEBIAN_FRONTEND="noninteractive"
+function usage() {
+  cat <<"EOF"
+Required environment variables:
+  CONFIG_PATH          Provisioning script config path
+  CRAFT_HOSTNAME       hostname of the website
+  CRAFT_PATH           Craft CMS base path
 
-# Variables ############################################################
-PROVISION_CONFIG_PATH="$(dirname "$0")"
-PROVISION_CRAFT_PATH=
-PROVISION_DROP_DB=false
-PROVISION_ENV=local
-PROVISION_HOSTNAME=
-PROVISION_PHP_VER=7.4
+Optional environment variables:
+  CRAFT_ENV=local      Craft CMS environment: local, staging or production
+  CRAFT_DROP_DB=false  Set to 'true' to drop the Craft CMS database
+  CRAFT_RESTORE_DB     Restore db from backup. File path
+  PHP_VERSION=7.4      PHP version to install
+EOF
+}
 
-# Parse args ###########################################################
-# SEE: https://stackoverflow.com/a/29754866/13037463
-OPTIONS="config-path:,craft-path:,drop,php:,hostname:,staging"
+# Validate CONFIG_PATH, then load utils.sh =============================
+CONFIG_PATH="${CONFIG_PATH:-$(dirname "$0")}"
+[ ! -f "$CONFIG_PATH/utils.sh" ] && usage && exit 1
+source "$CONFIG_PATH/utils.sh"
 
-! PARSED=$(getopt --name="$0" --options="" --longoptions=$OPTIONS -- "$@")
-if [[ ${PIPESTATUS[0]} -ne 0 ]]; then exit 2; fi
+# Validate remaining environment variables =============================
+CRAFT_ENV="${CRAFT_ENV:-local}"
+CRAFT_DROP_DB="${CRAFT_DROP_DB:-false}"
+CRAFT_RESTORE_DB="${CRAFT_RESTORE_DB:-}"
+CRAFT_HOSTNAME="${CRAFT_HOSTNAME:-}"
+CRAFT_PATH="${CRAFT_PATH:-}"
+PHP_VERSION="${PHP_VERSION:-7.4}"
 
-eval set -- "$PARSED"
-while true; do
-  case "$1" in
-  --config-path)
-    if [ ! -f "$2/utils.sh" ]; then
-      echo "$1 is invalid"
-      exit 3
-    fi
-    PROVISION_CONFIG_PATH="$2"
-    shift 2
-    ;;
-  --craft-path)
-    PROVISION_CRAFT_PATH="$2"
-    shift 2
-    ;;
-  --hostname)
-    PROVISION_HOSTNAME="$2"
-    shift 2
-    ;;
-  --drop)
-    PROVISION_DROP_DB=true
-    shift
-    ;;
-  --php)
-    PROVISION_PHP_VER="$2"
-    shift 2
-    ;;
-  --staging)
-    if [ "$PROVISION_ENV" = "production" ]; then
-      echo "only one env modifier is allowed at a time"
-      exit 3
-    fi
-    PROVISION_ENV=staging
-    shift
-    ;;
-  --)
-    shift
-    break
-    ;;
-  *)
-    echo "Invalid args"
-    exit 3
-    ;;
-  esac
-done
-
-# Change PWD & load utils ##############################################
-if [ ! -f "$PROVISION_CONFIG_PATH/utils.sh" ]; then
-  echo -e '\033[0;31m' "--config-dir is invalid" '\033[0m'
-  exit 3
-fi
-cd "$PROVISION_CONFIG_PATH"
-# ! Cannot use utility function before this point
-source "utils.sh"
-
-# Sanity checks ########################################################
-if [ -z "$PROVISION_HOSTNAME" ]; then
-  log_error "--hostname is required"
-  exit 3
+if [ -z "$CRAFT_PATH" ] || [ -z "$CRAFT_HOSTNAME" ]; then
+  usage && exit 1
 fi
 
-# General system setup #################################################
-# Set timezone
+if [ -z $(hostname_get_domain "$CRAFT_HOSTNAME") ]; then
+  log_error "$CRAFT_HOSTNAME is not a valid domain name"
+  exit 1
+fi
+
+if [ "$CRAFT_ENV" != "local" ] &&
+  [ "$CRAFT_ENV" != "staging" ] &&
+  [ "$CRAFT_ENV" != "production" ]; then
+  usage && exit 1
+fi
+
+if [ "$CRAFT_DROP_DB" = true ] &&
+  [ "$CRAFT_ENV" = "production" ]; then
+  log_error "CRAFT_DROP_DB=true is not allowed on production"
+  exit 1
+fi
+
+if [ ! -z "$CRAFT_RESTORE_DB" ] && [ "$CRAFT_DROP_DB" = true ]; then
+  log_error "CRAFT_RESTORE_DB & CRAFT_DROP_DB are mutually exclusive"
+  exit 1
+fi
+
+if [ ! -z "$CRAFT_RESTORE_DB" ]; then
+  if [ ! -f "$CRAFT_RESTORE_DB" ]; then
+    log_error "CRAFT_RESTORE_DB is not a file: $CRAFT_RESTORE_DB"
+    exit 1
+  fi
+  if [[ $CRAFT_RESTORE_DB != *.sql ]]; then
+    log_error "CRAFT_RESTORE_DB is not an SQL file: $CRAFT_RESTORE_DB"
+    exit 1
+  fi
+fi
+
+# General system setup =================================================
 timedatectl set-timezone Asia/Riyadh
-# Add some swap (1/4 of total memory)
-makeswap_auto
-# Common dependencies
-log 1 "Installing curl, wget & unzip"
-apt_get "curl" "wget" "unzip"
+makeswap_auto # (1/4 of total memory)
+log "Installing [curl, wget, unzip]"
+apt_get curl wget unzip
 
-# Update PHP config ####################################################
-log 1 "Updating php configuration"
-php_get $PROVISION_PHP_VER
-php_mod_add $PROVISION_PHP_VER "cms" "php/php.ini"
-php_mod_enable $PROVISION_PHP_VER "cms"
+# Update PHP config ====================================================
+log "Configuring PHP $PHP_VERSION"
+php_get $PHP_VERSION
+php_mod_add $PHP_VERSION craftcms "$CONFIG_PATH/php/php.ini"
+php_mod_enable $PHP_VERSION craftcms
 
-# Email setup ##########################################################
+# Email setup ==========================================================
 # Make sure to setup SMTP relay in G Suite with the website's static IP
 # SEE: https://support.google.com/a/answer/176600?hl=en
-if [ "$PROVISION_ENV" = "staging" ] ||
-  [ "$PROVISION_ENV" = "production" ]; then
-  log 1 "POSTFIX setup through G Suite relay"
-
-  if [ -z "$PROVISION_EMAIL_HOSTNAME" ]; then
-    echo "--email-hostname is required in non-local env"
-    exit 2
-  fi
-
-  EMAIL_HOSTNAME="$(regexp_match \
-    "$PROVISION_HOSTNAME" '^(.*\.)?\K([^.]+)(\.[^.]+?)$')"
-  if [ -z "$EMAIL_HOSTNAME" ]; then
-    echo "Hostname $PROVISION_HOSTNAME is not a valid domain name"
-    exit 2
-  fi
-
-  postfix_get && postfix_relay_to_gsuite "$EMAIL_HOSTNAME"
-  unset EMAIL_HOSTNAME
+if [ "$CRAFT_ENV" != "local" ]; then
+  log "POSTFIX setup through G Suite relay"
+  postfix_get
+  postfix_relay_to_gsuite "$(hostname_get_domain "$CRAFT_HOSTNAME")"
 fi
 
-# Main Tasks ###########################################################
-remove_existing_env() {
-  if [ -f "$PROVISION_CRAFT_PATH/.env" ]; then
-    log 1 "Removing existing .env file"
-    rm "$PROVISION_CRAFT_PATH/.env"
-    # sudo --user=www-data touch "$PROVISION_CRAFT_PATH/.env"
+# Units of work ========================================================
+is_installed() {
+  if "$CRAFT_PATH/craft" install/check >/dev/null 2>&1; then
+    return true
+  else
+    return false
+  fi
+}
+
+# Unused
+remove_existing_dotenv() {
+  if [ -f "$CRAFT_PATH/.env" ]; then
+    log "Removing existing .env file"
+    rm "$CRAFT_PATH/.env"
   fi
 }
 
 download_craft() {
-  if [ ! -d "/usr/local/lib/craft" ]; then
-    mkdir --mode 774 --parents "/usr/local/lib/craft"
-  fi
-  set_permissions www-data:www-data 774 "/usr/local/lib/craft"
-  log 1 "Performing composer install"
+  log "Downloading Craft CMS [Composer]"
+  local vendorPath="/usr/local/lib/craft"
+  [ ! -d "$vendorPath" ] && mkdir "$vendorPath"
+  set_permissions www-data:www-data 774 "$vendorPath"
   composer_get
-  cd "$PROVISION_CRAFT_PATH"
   sudo --user=www-data \
-    composer --no-cache --quiet install --no-dev
-  cd - >/dev/null
+    composer --working-dir="$CRAFT_PATH" --no-cache --quiet install
+}
+
+restore_db() {
+  sudo --user=www-data \
+    "$CRAFT_PATH/craft" restore/db "$1" --interactive=0 \
+    >/dev/null
 }
 
 generate_app_id() {
-  cd "$PROVISION_CRAFT_PATH"
-  sudo --user=www-data \
-    ./craft setup/app-id --interactive 0
-  cd - >/dev/null
+  # https://github.com/craftcms/cms/blob/
+  #   23610e02030e21de0183399bf4e8df052295831c/
+  #     src/console/controllers/SetupController.php#L173
+  # Also: `craft setup/app-id --interactive=0`
+  # Which saves the output in the `.env` file
+  password_gen 32
 }
 
 generate_security_key() {
-  cd "$PROVISION_CRAFT_PATH"
-  sudo --user=www-data \
-    ./craft setup/security-key --interactive 0
-  cd - >/dev/null
+  # https://github.com/craftcms/cms/blob/
+  #   23610e02030e21de0183399bf4e8df052295831c/
+  #     src/console/controllers/SetupController.php#L189
+  # Also: `craft setup/security-key --interactive=0`
+  # Which saves the output in the `.env` file
+  local appUUID=$(cat /proc/sys/kernel/random/uuid)
+  echo "CraftCMS--$appUUID"
 }
 
-save_app_id_and_security_key() {
-  log 1 "Saving APP_ID & SECURITY_KEY"
-  export $(cat "$PROVISION_CRAFT_PATH/.env" | xargs)
-  echo "APP_ID=$APP_ID" >>"cms/.env"
-  echo "SECURITY_KEY=$SECURITY_KEY" >>"cms/.env"
-  export -n $(cat "$PROVISION_CRAFT_PATH/.env" | xargs)
+save_setup_keys() {
+  log "Saving APP_ID & SECURITY_KEY"
+  local appId="$1"
+  local securityKey="$2"
+  local setupFile="$CONFIG_PATH/cms/setup"
+  touch "$setupFile" && echo -n >|"$setupFile"
+  echo "APP_ID=$appId" >>"$setupFile"
+  echo "SECURITY_KEY=$securityKey" >>"$setupFile"
 }
 
-generate_env_file() {
-  log 1 'Generating .env file'
-  local ASSETS_URL="http://$PROVISION_HOSTNAME"
-  local SITE_URL="http://$PROVISION_HOSTNAME"
-  export ASSETS_URL SITE_URL
-  env $(cat "cms/.env" | xargs) \
-    envsubst '$APP_ID:$SECURITY_KEY:$ASSETS_URL:$SITE_URL' \
-    <cms/.$PROVISION_ENV.env >|"$PROVISION_CRAFT_PATH/.env"
-  export -n ASSETS_URL SITE_URL
+generate_dotenv() {
+  log 'Generating .env file'
+  if [ "$CRAFT_ENV" = "local" ]; then
+    export SITE_URL="http://$CRAFT_HOSTNAME"
+  else
+    export SITE_URL="https://$CRAFT_HOSTNAME"
+  fi
+  export ASSETS_URL="$SITE_URL"
+  local envList='$APP_ID:$ASSETS_URL:$SECURITY_KEY:$SITE_URL'
+  env_from_file "$CONFIG_PATH/cms/setup"
+  envsubst $envList \
+    <"$CONFIG_PATH/cms/.env.$CRAFT_ENV" >|"$CRAFT_PATH/.env"
+  export -n APP_ID ASSETS_URL SECURITY_KEY SITE_URL
 }
 
 set_the_file_permissions() {
+  log "Setting file permissions"
   local owner=www-data:www-data
   local mode=774
-  local path="$PROVISION_CRAFT_PATH"
+  local path="$CRAFT_PATH"
   set_permissions $owner $mode "$path/.env"
   set_permissions $owner $mode "$path/composer".*
   set_permissions $owner $mode "$path/config/license.key"
-  set_permissions $owner $mode "$path/config/project/"*
-  set_permissions $owner $mode "$path/storage/"*
+  set_permissions $owner $mode "$path/config/project"
+  set_permissions $owner $mode "$path/storage"
   set_permissions $owner $mode "$path/vendor"
-  set_permissions $owner $mode "$path/web/cpresources/"*
+  set_permissions $owner $mode "$path/web/cpresources"
 }
 
 create_a_database() {
-  log 1 "MySQL setup"
+  log "Creating database"
   mysql_get
-  if [ "$PROVISION_DROP_DB" = true ]; then
-    echo "Dropping existing database (if any)..."
-    mysql_db_drop "cms"
-  fi
   mysql_db_create "cms"
   mysql_user_add "cms_user" "cms_password"
   mysql_user_grant "cms_user" "cms"
 }
 
 setup_the_web_server() {
-  log 1 "Configuring NGINX"
-
+  log "Configuring NGINX"
+  export PHP_VERSION CRAFT_HOSTNAME CRAFT_PATH
+  local config="$(mktemp)"
+  local certEmail="msaadany@iceweb.co"
+  local partialsPath="/etc/nginx/nginx-partials"
+  local envList='$PHP_VERSION:$CRAFT_HOSTNAME:$CRAFT_PATH'
   nginx_get
-
-  if [ ! -d /etc/nginx/nginx-partials ]; then
-    mkdir /etc/nginx/nginx-partials
-  fi
-  cp nginx/partials/* /etc/nginx/nginx-partials
-
-  export PROVISION_PHP_VER PROVISION_HOSTNAME PROVISION_CRAFT_PATH
-  CONFIG="$(mktemp)"
-
-  if [ "$PROVISION_ENV" = staging ]; then
-    envsubst '$PROVISION_PHP_VER:$PROVISION_HOSTNAME:$PROVISION_CRAFT_PATH' \
-      <nginx/live.conf >|"$CONFIG"
+  [ ! -d "$partialsPath" ] && mkdir "$partialsPath"
+  cp "$CONFIG_PATH/nginx/partials"/* "$partialsPath"
+  if [ "$CRAFT_ENV" = "local" ]; then
+    envsubst $envList <"$CONFIG_PATH/nginx/local.conf" >|"$config"
   else
-    envsubst '$PROVISION_PHP_VER:$PROVISION_CRAFT_PATH' \
-      <nginx/local.conf >|"$CONFIG"
+    envsubst $envList <"$CONFIG_PATH/nginx/production.conf" >|"$config"
   fi
-
-  nginx_config_add "$PROVISION_HOSTNAME" "$CONFIG"
-  rm "$CONFIG" && unset CONFIG
-  export -n PROVISION_PHP_VER PROVISION_HOSTNAME PROVISION_CRAFT_PATH
-
+  nginx_config_add "$CRAFT_HOSTNAME" "$config"
   nginx_config_disable_default
-  nginx_config_enable "$PROVISION_HOSTNAME"
-
-  if [ "$PROVISION_ENV" = staging ]; then
-    certbot_apply nginx "$PROVISION_HOSTNAME" "msaadany@iceweb.co"
+  nginx_config_enable "$CRAFT_HOSTNAME"
+  if [ "$CRAFT_ENV" != "local" ]; then
+    certbot_apply nginx $CRAFT_HOSTNAME $certEmail
   fi
+  rm "$config"
+  export -n PHP_VERSION CRAFT_HOSTNAME CRAFT_PATH
 }
 
 run_the_setup() {
-  log 1 "Installing Craft CMS"
+  log "Installing Craft CMS"
   local password="$(password_gen)"
-  cd "$PROVISION_CRAFT_PATH"
+  local email="msaadany@iceweb.co"
   sudo --user=www-data \
-    ./craft install \
-    --interactive=0 \
-    --email="msaadany@iceweb.co" \
-    --password="$password" \
+    "$CRAFT_PATH/craft" install --interactive=0 \
+    --email=$email --password="$password" \
     >/dev/null
-  cd - >/dev/null
-  echo "Craft login details:"
-  echo "  username: msaadany@iceweb.co"
-  echo "  password: $password"
+  printf "  %-10s %-30s\n" Email: $email
+  printf "  %-10s %-30s\n" Password: $password
 }
 
 clear_all_caches() {
-  log 1 'Clearing Craft CMS caches'
-  cd "$PROVISION_CRAFT_PATH"
+  log 'Clearing Craft CMS caches'
   sudo --user=www-data \
-    ./craft clear-caches/all >/dev/null
-  cd - >/dev/null
+    "$CRAFT_PATH/craft" clear-caches/all \
+    >/dev/null 2>&1
 }
 
 project_config_apply() {
-  cd "$PROVISION_CRAFT_PATH"
+  log 'Applying Craft CMS project config'
   sudo --user=www-data \
-    ./craft project-config/apply
-  cd - >/dev/null
+    "$CRAFT_PATH/craft" project-config/apply \
+    >/dev/null
 }
 
 mailer_test() {
-  if [ "$PROVISION_ENV" = "staging" ] ||
-    [ "$PROVISION_ENV" = "production" ]; then
-    log 1 'Test mail sending'
-    cd "$PROVISION_CRAFT_PATH"
-    sudo --user=www-data \
-      ./craft mailer/test --interactive=0 --to msaadany@iceweb.co >/dev/null
-    cd - >/dev/null
-  fi
+  [ "$CRAFT_ENV" = "local" ] && return 0
+  log 'Testing mail sending from Craft CMS'
+  local to="msaadany@iceweb.co"
+  sudo --user=www-data \
+    "$CRAFT_PATH/craft" mailer/test --interactive=0 --to $to \
+    >/dev/null
 }
 
-# Check if Craft CMS is already installed ##############################
-if ! sudo --user=www-data \
-  "$PROVISION_CRAFT_PATH"/craft install/check; then
+# Craft CMS Setup ======================================================
+download_craft
 
-  remove_existing_env
-  download_craft
-  generate_security_key
-  generate_app_id
-  save_app_id_and_security_key
-  generate_env_file
+if [ "$CRAFT_DROP_DB" = true ]; then
+  log "Dropping existing database (if any)"
+  mysql_db_drop "cms"
+fi
 
-  exit
+if [ ! is_installed ]; then
+  if [ "$CRAFT_ENV" != "local" ] && [ -z "$CRAFT_RESTORE_DB" ]; then
+    log_error "First non-local provision requires CRAFT_RESTORE_DB to be set"
+    exit 2
+  fi
+fi
 
+if [ ! -z "$CRAFT_RESTORE_DB" ]; then
+  log "Restoring database from backup"
+  restore_db "$CRAFT_RESTORE_DB"
+fi
+
+if [ ! is_installed ]; then
+  appId=$(generate_app_id)
+  securityKey=$(generate_security_key)
+  save_setup_keys $appId $securityKey
+  generate_dotenv
   set_the_file_permissions
   create_a_database
   setup_the_web_server
   run_the_setup
-  project_config_apply
-  clear_all_caches
   mailer_test
-
 else
-
-  download_craft
+  generate_dotenv
   set_the_file_permissions
-  create_a_database
   setup_the_web_server
-  run_the_setup
   project_config_apply
   clear_all_caches
   mailer_test
-
 fi
