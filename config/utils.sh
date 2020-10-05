@@ -72,20 +72,43 @@ craft_create_project() {
   fi
 }
 
-import_env() {
-  export $(grep -v '^#' "$1" | xargs)
+# UNUSED
+env_list() {
+  set | grep '^SCAFFOLDING_' |
+    sed -r 's/(.*)=.*/$\1/' |
+    paste -sd ':' -
 }
 
-log() {
-  for i in $(seq 1 $1); do
-    printf "    "
-  done
-  shift
-  echo "$@"
+env_from_file() {
+  # https://gist.github.com/judy2k/7656bfe3b322d669ef75364a46327836#gistcomment-3239799
+  local envFile=${1:-.env}
+  while IFS='=' read -r key temp || [ -n "$key" ]; do
+    local isComment='^[[:space:]]*#'
+    local isBlank='^[[:space:]]*$'
+    [[ $key =~ $isComment ]] && continue
+    [[ $key =~ $isBlank ]] && continue
+    value=$(eval echo "$temp")
+    eval export "$key='$value'"
+  done <$envFile
+}
+
+env_subst() {
+  tempFile=$(mktemp)
+  cp $1 $tempFile
+  envsubst $2 <$tempFile >$1
+  rm $tempFile
+}
+
+hostname_get_domain() {
+  echo -n "$(regexp_match "$1" '^(.*\.)?\K([^.]+)(\.[^.]+?)$')"
 }
 
 log_colorize() {
-  echo -e "$1" "$2" "$NC"
+  echo -e "${1}${2}${NC}"
+}
+
+log() {
+  log_colorize "$G" "$1"
 }
 
 log_error() {
