@@ -89,11 +89,11 @@ if [ "$CRAFT_ENV" != "local" ]; then
 fi
 
 # Units of work ========================================================
-is_installed() {
+is_not_installed() {
   if "$CRAFT_PATH/craft" install/check >/dev/null 2>&1; then
-    return true
+    return 1 # No
   else
-    return false
+    return 0 # Yes
   fi
 }
 
@@ -213,7 +213,7 @@ setup_the_web_server() {
 
 run_the_setup() {
   log "Installing Craft CMS"
-  local password="$(password_gen)"
+  local password="$(random_password)"
   local email="msaadany@iceweb.co"
   sudo --user=www-data \
     "$CRAFT_PATH/craft" install --interactive=0 \
@@ -249,12 +249,7 @@ mailer_test() {
 # Craft CMS Setup ======================================================
 download_craft
 
-if [ "$CRAFT_DROP_DB" = true ]; then
-  log "Dropping existing database (if any)"
-  mysql_db_drop "cms"
-fi
-
-if [ ! is_installed ]; then
+if is_not_installed; then
   if [ "$CRAFT_ENV" != "local" ] && [ -z "$CRAFT_RESTORE_DB" ]; then
     log_error "First non-local provision requires CRAFT_RESTORE_DB to be set"
     exit 2
@@ -266,7 +261,7 @@ if [ ! -z "$CRAFT_RESTORE_DB" ]; then
   restore_db "$CRAFT_RESTORE_DB"
 fi
 
-if [ ! is_installed ]; then
+if is_not_installed; then
   appId=$(generate_app_id)
   securityKey=$(generate_security_key)
   save_setup_keys $appId $securityKey
