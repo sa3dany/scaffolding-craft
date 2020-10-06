@@ -171,12 +171,6 @@ makeswap_auto() {
   makeswap "${quarter_mem}M"
 }
 
-password_gen() {
-  local charSet='A-Za-z0-9-_'
-  head /dev/urandom | tr --delete --complement $charSet |
-    head --bytes=${1:-12}
-}
-
 postfix_get() {
   apt-get -qq update >/dev/null
   apt-get -qq install postfix >/dev/null
@@ -199,6 +193,12 @@ postfix_relay_to_gsuite() {
     echo "ubuntu ubuntu@localhost" >>$virtualmap &&
     postmap /etc/postfix/virtual
   systemctl restart postfix
+}
+
+random_password() {
+  local charSet='A-Za-z0-9-_'
+  head /dev/urandom | tr --delete --complement $charSet |
+    head --bytes=${1:-12}
 }
 
 random_uuid() {

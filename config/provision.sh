@@ -127,7 +127,7 @@ generate_app_id() {
   #     src/console/controllers/SetupController.php#L173
   # Also: `craft setup/app-id --interactive=0`
   # Which saves the output in the `.env` file
-  password_gen 32
+  random_password 32
 }
 
 generate_security_key() {
