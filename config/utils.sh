@@ -25,12 +25,12 @@ certbot_apply() {
 composer_get() {
   if [ ! $(hash composer &>/dev/null) ]; then
     local DOWNLOAD_URL="https://getcomposer.org/installer"
-    local DOWNLOAD_FILE="$(mktemp)" # ======================= START FILE
+    local DOWNLOAD_FILE="$(mktemp)"
     local INSTALL_DIR="/usr/local/bin"
     wget -q -O "$DOWNLOAD_FILE" "$DOWNLOAD_URL"
     php "$DOWNLOAD_FILE" --quiet --install-dir="$INSTALL_DIR"
     mv "$INSTALL_DIR/composer.phar" "$INSTALL_DIR/composer"
-    rm "$DOWNLOAD_FILE" # ===================================== END FILE
+    rm "$DOWNLOAD_FILE"
   else
     composer self-update
   fi
