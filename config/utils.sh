@@ -66,16 +66,16 @@ log_error() {
 }
 
 mysql_db_import() {
-  sudo mysql $1 <"$2"
+  mysql $1 <"$2"
 }
 
 mysql_db_drop() {
-  sudo mysql -e \
+  mysql -e \
     "DROP DATABASE IF EXISTS $1;"
 }
 
 mysql_db_create() {
-  sudo mysql -e \
+  mysql -e \
     "CREATE DATABASE IF NOT EXISTS $1
       CHARACTER SET utf8
       COLLATE utf8_unicode_ci;"
@@ -87,13 +87,13 @@ mysql_get() {
 }
 
 mysql_user_add() {
-  sudo mysql -e \
+  mysql -e \
     "CREATE USER IF NOT EXISTS '$1'@'localhost'
       IDENTIFIED BY '$2';"
 }
 
 mysql_user_grant() {
-  sudo mysql -e \
+  mysql -e \
     "GRANT ALL ON $2.*
       TO '$1'@'localhost';"
 }
