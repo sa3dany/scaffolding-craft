@@ -136,8 +136,7 @@ generate_security_key() {
   #     src/console/controllers/SetupController.php#L189
   # Also: `craft setup/security-key --interactive=0`
   # Which saves the output in the `.env` file
-  local appUUID=$(cat /proc/sys/kernel/random/uuid)
-  echo "CraftCMS--$appUUID"
+  random_uuid "CraftCMS"
 }
 
 save_setup_keys() {

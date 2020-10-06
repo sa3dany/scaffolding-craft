@@ -201,6 +201,12 @@ postfix_relay_to_gsuite() {
   systemctl restart postfix
 }
 
+random_uuid() {
+  local prefix=${1:-}
+  local uuid=$(cat /proc/sys/kernel/random/uuid)
+  echo "${prefix}--${uuid}"
+}
+
 regexp_match() {
   echo "$1" | grep --perl-regexp --only-matching "$2"
 }
