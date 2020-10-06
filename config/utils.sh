@@ -68,6 +68,10 @@ log_error() {
   log_colorize >&2 "$R" "$1"
 }
 
+log_info() {
+  log_colorize "$Y" "$1"
+}
+
 mysql_db_import() {
   mysql $1 <"$2"
 }

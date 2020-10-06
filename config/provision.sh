@@ -15,6 +15,9 @@ Optional environment variables:
   CRAFT_RESTORE_DB     Restore db from backup. File path
   PHP_VERSION=7.4      PHP version to install
 EOF
+  # Undocumented environment varialbes:
+  #   CRAFT_APP_ID        Craft application id
+  #   CRAFT_SECURITY_KEY  Craft security key
 }
 
 # Validate CONFIG_PATH, then load utils.sh =============================
@@ -29,6 +32,11 @@ CRAFT_RESTORE_DB="${CRAFT_RESTORE_DB:-}"
 CRAFT_HOSTNAME="${CRAFT_HOSTNAME:-}"
 CRAFT_PATH="${CRAFT_PATH:-}"
 PHP_VERSION="${PHP_VERSION:-7.4}"
+
+# Private ---------------------------------- #
+CRAFT_APP_ID="${CRAFT_APP_ID:-}"             #
+CRAFT_SECURITY_KEY="${CRAFT_SECURITY_KEY:-}" #
+# ------------------------------------------ #
 
 if [ -z "$CRAFT_PATH" ] || [ -z "$CRAFT_HOSTNAME" ]; then
   usage && exit 1
@@ -135,7 +143,10 @@ generate_app_id() {
   #     src/console/controllers/SetupController.php#L173
   # Also: `craft setup/app-id --interactive=0`
   # Which saves the output in the `.env` file
-  random_uuid "CraftCMS"
+  log "Generating app ID"
+  [ -z "$CRAFT_APP_ID" ] &&
+    CRAFT_APP_ID="$(random_uuid "CraftCMS")"
+  log_info "  $CRAFT_APP_ID"
 }
 
 generate_security_key() {
@@ -144,17 +155,18 @@ generate_security_key() {
   #     src/console/controllers/SetupController.php#L189
   # Also: `craft setup/security-key --interactive=0`
   # Which saves the output in the `.env` file
-  random_password 32
+  log "Generating security key"
+  [ -z "$CRAFT_SECURITY_KEY" ] &&
+    CRAFT_SECURITY_KEY="$(random_password 32)"
+  log_info "  $CRAFT_SECURITY_KEY"
 }
 
 save_setup_keys() {
-  log "Saving APP_ID & SECURITY_KEY"
-  local appId="$1"
-  local securityKey="$2"
-  local setupFile="$CONFIG_PATH/cms/setup"
-  touch "$setupFile" && echo -n >|"$setupFile"
-  echo "APP_ID=$appId" >>"$setupFile"
-  echo "SECURITY_KEY=$securityKey" >>"$setupFile"
+  log "Saving Craft CMS app ID & security key"
+  local setupFile="$CONFIG_PATH/cms/install.env"
+  echo "# Added by provision script. Commit to repo." >|"$setupFile"
+  echo "APP_ID=$CRAFT_APP_ID" >>"$setupFile"
+  echo "SECURITY_KEY=$CRAFT_SECURITY_KEY" >>"$setupFile"
 }
 
 generate_dotenv() {
@@ -166,7 +178,7 @@ generate_dotenv() {
   fi
   export ASSETS_URL="$SITE_URL"
   local envList='$APP_ID:$ASSETS_URL:$SECURITY_KEY:$SITE_URL'
-  env_from_file "$CONFIG_PATH/cms/setup"
+  env_from_file "$CONFIG_PATH/cms/install.env"
   envsubst $envList \
     <"$CONFIG_PATH/cms/.env.$CRAFT_ENV" >|"$CRAFT_PATH/.env"
   export -n APP_ID ASSETS_URL SECURITY_KEY SITE_URL
@@ -227,8 +239,8 @@ run_the_setup() {
     "$CRAFT_PATH/craft" install --interactive=0 \
     --email=$email --password="$password" \
     >/dev/null
-  printf "  %-10s %-30s\n" Email: $email
-  printf "  %-10s %-30s\n" Password: $password
+  log_info "$(printf "  %-10s %-30s\n" Email: $email)"
+  log_info "$(printf "  %-10s %-30s\n" Password: $password)"
 }
 
 clear_all_caches() {
@@ -268,9 +280,9 @@ fi
 [ ! -z "$CRAFT_RESTORE_DB" ] && restore_db
 
 if is_not_installed; then
-  appId=$(generate_app_id)
-  securityKey=$(generate_security_key)
-  save_setup_keys $appId $securityKey
+  generate_app_id
+  generate_security_key
+  save_setup_keys
   generate_dotenv
   set_the_file_permissions
   create_a_database
