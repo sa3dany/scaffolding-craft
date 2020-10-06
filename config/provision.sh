@@ -272,6 +272,7 @@ download_craft
 if is_not_installed; then
   if [ "$CRAFT_ENV" != "local" ] && [ -z "$CRAFT_RESTORE_DB" ]; then
     log_error "First non-local provision requires CRAFT_RESTORE_DB to be set"
+    log_error "visit: http://${CRAFT_HOSTNAME}/admin/utilities/db-backup"
     exit 2
   fi
 fi
