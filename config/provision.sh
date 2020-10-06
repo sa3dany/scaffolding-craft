@@ -127,7 +127,7 @@ generate_app_id() {
   #     src/console/controllers/SetupController.php#L173
   # Also: `craft setup/app-id --interactive=0`
   # Which saves the output in the `.env` file
-  random_password 32
+  random_uuid "CraftCMS"
 }
 
 generate_security_key() {
@@ -136,7 +136,7 @@ generate_security_key() {
   #     src/console/controllers/SetupController.php#L189
   # Also: `craft setup/security-key --interactive=0`
   # Which saves the output in the `.env` file
-  random_uuid "CraftCMS"
+  random_password 32
 }
 
 save_setup_keys() {
