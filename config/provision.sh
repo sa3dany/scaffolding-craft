@@ -115,9 +115,17 @@ download_craft() {
     composer --working-dir="$CRAFT_PATH" --no-cache --quiet install
 }
 
+delete_db() {
+  log "Dropping existing database (if any)"
+  mysql_get
+  mysql_db_drop "cms"
+}
+
 restore_db() {
+  log "Restoring database from backup"
+  mysql_get
   sudo --user=www-data \
-    "$CRAFT_PATH/craft" restore/db "$1" --interactive=0 \
+    "$CRAFT_PATH/craft" restore/db "$CRAFT_RESTORE_DB" --interactive=0 \
     >/dev/null
 }
 
@@ -256,10 +264,8 @@ if is_not_installed; then
   fi
 fi
 
-if [ ! -z "$CRAFT_RESTORE_DB" ]; then
-  log "Restoring database from backup"
-  restore_db "$CRAFT_RESTORE_DB"
-fi
+[ "$CRAFT_DROP_DB" = true ] && delete_db
+[ ! -z "$CRAFT_RESTORE_DB" ] && restore_db
 
 if is_not_installed; then
   appId=$(generate_app_id)
