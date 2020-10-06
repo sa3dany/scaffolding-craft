@@ -36,49 +36,6 @@ composer_get() {
   fi
 }
 
-composer_install() {
-  tmpdir="$(mktemp --directory)" # =========================== START DIR
-  cd $tmpdir                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ START PWD
-  cp "$1/composer".* "$tmpdir/"
-  chmod --recursive 777 .
-  sudo --user=vagrant --set-home \
-    composer --quiet install
-  if [ -d "$1/vendor" ]; then
-    rm -r "$1/vendor"
-  fi
-  mv "$tmpdir/vendor" "$1/vendor"
-  cp -p "$tmpdir/composer".* "$1/"
-  cd -          # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ END PWD
-  rmdir $tmpdir # ============================================== END DIR
-}
-
-craft_download_vendor() {
-  local url='https://craftcms.com/latest-v3.tar.gz'
-  local tmpfile="$(mktemp)" # =============================== START FILE
-  wget -q --output-document="$tmpfile" "$url"
-  tar --ungzip --extract --file="$tmpfile" --directory="$1" vendor
-  rm "$tmpfile" # ============================================= END FILE
-}
-
-craft_create_project() {
-  if [ ! -d "$1" ]; then
-    sudo --user=vagrant --set-home \
-      composer.phar create-project craftcms/craft \
-      --no-interaction \
-      --no-progress \
-      --quiet \
-      --remove-vcs \
-      "$1"
-  fi
-}
-
-# UNUSED
-env_list() {
-  set | grep '^SCAFFOLDING_' |
-    sed -r 's/(.*)=.*/$\1/' |
-    paste -sd ':' -
-}
-
 env_from_file() {
   # https://gist.github.com/judy2k/7656bfe3b322d669ef75364a46327836#gistcomment-3239799
   local envFile=${1:-.env}
@@ -90,13 +47,6 @@ env_from_file() {
     value=$(eval echo "$temp")
     eval export "$key='$value'"
   done <$envFile
-}
-
-env_subst() {
-  tempFile=$(mktemp)
-  cp $1 $tempFile
-  envsubst $2 <$tempFile >$1
-  rm $tempFile
 }
 
 hostname_get_domain() {
