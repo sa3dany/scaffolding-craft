@@ -1,6 +1,11 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+CONFIG_PATH = "/vagrant/config"
+CRAFT_HOSTNAME = ""
+CRAFT_DROP_DB = "false"
+CRAFT_PATH = "/vagrant/cms"
+
 Vagrant.configure("2") do |config|
   # https://docs.vagrantup.com.
 
@@ -24,12 +29,37 @@ Vagrant.configure("2") do |config|
   config.vm.provision "shell" do |sh|
     sh.binary = true
     sh.env = {
-      "CONFIG_PATH" => "/vagrant/config",
-      "CRAFT_HOSTNAME" => "craftcms",
-      "CRAFT_DROP_DB" => "false",
-      "CRAFT_PATH" => "/vagrant/cms",
+      "CONFIG_PATH" => CONFIG_PATH,
+      "CRAFT_HOSTNAME" => CRAFT_HOSTNAME,
+      "CRAFT_DROP_DB" => CRAFT_DROP_DB,
+      "CRAFT_PATH" => CRAFT_PATH,
     }
     sh.keep_color = true
     sh.path = "config/provision.sh"
+  end
+
+  # https://www.vagrantup.com/docs/triggers
+  # Backup db
+  config.trigger.after :up do |trigger|
+    trigger.warn = "Restoring database"
+    trigger.run_remote = {
+      env: {
+        "CRAFT_PATH" => CRAFT_PATH,
+        "CONFIG_PATH" => CONFIG_PATH
+      },
+      inline: '[ -f "$CONFIG_PATH/mysql/dump.sql" ] && \
+        "$CRAFT_PATH/craft" restore/db "$CONFIG_PATH/mysql/dump.sql"; exit 0'
+    }
+  end
+  # Restore db
+  config.trigger.before [:destroy, :halt] do |trigger|
+    trigger.warn = "Dumping database"
+    trigger.run_remote = {
+      env: {
+        "CRAFT_PATH" => CRAFT_PATH,
+        "CONFIG_PATH" => CONFIG_PATH
+      },
+      inline: '"$CRAFT_PATH/craft" backup/db "$CONFIG_PATH/mysql/dump.sql"'
+    }
   end
 end
