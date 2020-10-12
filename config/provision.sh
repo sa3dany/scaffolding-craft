@@ -76,8 +76,10 @@ if [ ! -z "$CRAFT_RESTORE_DB" ]; then
 fi
 
 # General system setup =================================================
+log "Setting timezone"
 timedatectl set-timezone Asia/Riyadh
 makeswap_auto # (1/4 of total memory)
+
 log "Installing [curl, git, unzip, wget]"
 apt-get -qq update >/dev/null
 apt-get -qq install curl git unzip wget >/dev/null
