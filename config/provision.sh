@@ -1,6 +1,6 @@
 #!/bin/bash
 set -o errexit -o noclobber -o nounset -o pipefail
-# set -0 xtrace # uncomment to debug
+# set -o xtrace # uncomment to debug
 export DEBIAN_FRONTEND="noninteractive"
 function usage() {
   cat <<"EOF"
