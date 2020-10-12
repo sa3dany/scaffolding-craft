@@ -27,6 +27,7 @@ return [
     'maxUploadFileSize' => App::env('MAX_UPLOAD_FILE_SIZE'),
     'runQueueAutomatically' => (bool)App::env('RUN_QUEUE_AUTOMATICALLY'),
     'securityKey' => App::env('SECURITY_KEY'),
+    'userSessionDuration' => App::env('USER_SESSION_DURATION'),
 
     // Craft config settings from constants
     'cacheDuration' => 0,
