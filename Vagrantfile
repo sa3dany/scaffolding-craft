@@ -11,8 +11,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.box = "bento/ubuntu-20.04"
   config.vm.provider "virtualbox" do |vb|
-    vb.memory = "2048"
-    vb.name = "Craft CMS"
+    vb.memory = "1024"
   end
 
   # https://www.vagrantup.com/docs/networking
