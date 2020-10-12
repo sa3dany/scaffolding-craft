@@ -250,9 +250,8 @@ run_the_setup() {
 
 clear_all_caches() {
   log 'Clearing Craft CMS caches'
-  sudo --user=www-data \
-    "$CRAFT_PATH/craft" clear-caches/all \
-    >/dev/null 2>&1
+  "$CRAFT_PATH/craft" clear-caches/compiled-templates >/dev/null 2>&1
+  "$CRAFT_PATH/craft" clear-caches/data >/dev/null 2>&1
 }
 
 project_config_apply() {
