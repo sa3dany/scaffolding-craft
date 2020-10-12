@@ -78,6 +78,8 @@ fi
 # General system setup =================================================
 log "Setting timezone"
 timedatectl set-timezone Asia/Riyadh
+
+log "Addin swap space (if not already available)"
 makeswap_auto # (1/4 of total memory)
 
 log "Installing [curl, git, unzip, wget]"

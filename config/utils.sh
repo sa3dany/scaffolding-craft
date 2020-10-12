@@ -160,21 +160,30 @@ php_mod_enable() {
 }
 
 makeswap() {
-  if [ ! -f /swapfile ]; then
+  local swap="$(free | awk '$1 == "Swap:" { print($2) }')"
+  if [ ! -f /swapfile ] && [ -z "$swap" ]; then
     fallocate -l "$1" /swapfile
     chmod 600 /swapfile
-    mkswap /swapfile >/dev/null && swapon /swapfile
+    mkswap /swapfile >/dev/null
+    swapon /swapfile
     sysctl vm.swappiness=10 >/dev/null
     sysctl vm.vfs_cache_pressure=50 >/dev/null
-    echo '/swapfile   none    swap    sw    0   0' >>/etc/fstab
+    echo '/swapfile none swap sw 0 0' >>/etc/fstab
     echo 'vm.swappiness=10' >>/etc/sysctl.conf
     echo 'vm.vfs_cache_pressure=50' >>/etc/sysctl.conf
   fi
 }
 
 makeswap_auto() {
-  local quarter_mem="$(free --mega | awk '$1 == "Mem:" { print(int($2/4)) }')"
-  makeswap "${quarter_mem}M"
+  local ram="$(free --mega | awk '$1 == "Mem:" { print($2) }')"
+  if [ "$ram" -lt "2" ]; then
+    local swapSize=$(($ram * 2))
+  elif [ "$ram" -lt "8" ]; then
+    local swapSize="$ram"
+  else
+    local swapSize="4"
+  fi
+  makeswap "${swapSize}M"
 }
 
 postfix_get() {
