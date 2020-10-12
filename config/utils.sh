@@ -87,11 +87,6 @@ mysql_db_create() {
       COLLATE utf8_unicode_ci;"
 }
 
-mysql_get() {
-  apt-get -qq update >/dev/null
-  apt-get -qq install mysql-server >/dev/null
-}
-
 mysql_user_add() {
   mysql -e \
     "CREATE USER IF NOT EXISTS '$1'@'localhost'
@@ -124,13 +119,7 @@ nginx_config_enable() {
   systemctl restart nginx
 }
 
-nginx_get() {
-  apt-get -qq update >/dev/null
-  apt-get -qq install certbot nginx python3-certbot-nginx >/dev/null
-}
-
 php_get() {
-  apt-get -qq update >/dev/null
   apt-get -qq install \
     php${1}-curl \
     php${1}-dom \
@@ -184,11 +173,6 @@ makeswap_auto() {
     local swapSize="4"
   fi
   makeswap "${swapSize}M"
-}
-
-postfix_get() {
-  apt-get -qq update >/dev/null
-  apt-get -qq install postfix >/dev/null
 }
 
 postfix_relay_to_gsuite() {

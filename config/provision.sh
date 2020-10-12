@@ -78,17 +78,27 @@ fi
 # General system setup =================================================
 log "Setting timezone"
 timedatectl set-timezone Asia/Riyadh
-
 log "Addin swap space (if not already available)"
 makeswap_auto # (1/4 of total memory)
 
-log "Installing [curl, git, unzip, wget]"
+# Install dependencies =================================================
 apt-get -qq update >/dev/null
+log "Installing dependencies"
+log "Installing [curl, git, unzip, wget]"
 apt-get -qq install curl git unzip wget >/dev/null
+log "Installing PHP"
+php_get $PHP_VERSION
+log "Installing Composer"
+composer_get
+log "Installing NGINX"
+apt-get -qq install certbot nginx python3-certbot-nginx >/dev/null
+log "installing MySQL"
+apt-get -qq install mysql-server >/dev/null
+log "Installing Postfix"
+apt-get -qq install postfix >/dev/null
 
 # Update PHP config ====================================================
 log "Configuring PHP $PHP_VERSION"
-php_get $PHP_VERSION
 php_mod_add $PHP_VERSION craftcms "$CONFIG_PATH/php/php.ini"
 php_mod_enable $PHP_VERSION craftcms
 
@@ -97,7 +107,6 @@ php_mod_enable $PHP_VERSION craftcms
 # SEE: https://support.google.com/a/answer/176600?hl=en
 if [ "$CRAFT_ENV" != "local" ]; then
   log "POSTFIX setup through G Suite relay"
-  postfix_get
   postfix_relay_to_gsuite "$(hostname_get_domain "$CRAFT_HOSTNAME")"
 fi
 
@@ -123,20 +132,17 @@ download_craft() {
   local vendorPath="/usr/local/lib/craft"
   [ ! -d "$vendorPath" ] && mkdir "$vendorPath"
   set_permissions www-data:www-data 774 "$vendorPath"
-  composer_get
   sudo --user=www-data \
     composer --working-dir="$CRAFT_PATH" --no-cache --quiet install
 }
 
 delete_db() {
   log "Dropping existing database (if any)"
-  mysql_get
   mysql_db_drop "cms"
 }
 
 restore_db() {
   log "Restoring database from backup"
-  mysql_get
   sudo --user=www-data \
     "$CRAFT_PATH/craft" restore/db "$CRAFT_RESTORE_DB" --interactive=0 \
     >/dev/null
@@ -205,7 +211,6 @@ set_the_file_permissions() {
 
 create_a_database() {
   log "Creating database"
-  mysql_get
   mysql_db_create "cms"
   mysql_user_add "cms_user" "cms_password"
   mysql_user_grant "cms_user" "cms"
@@ -218,7 +223,6 @@ setup_the_web_server() {
   local certEmail="msaadany@iceweb.co"
   local partialsPath="/etc/nginx/nginx-partials"
   local envList='$PHP_VERSION:$CRAFT_HOSTNAME:$CRAFT_PATH'
-  nginx_get
   [ ! -d "$partialsPath" ] && mkdir "$partialsPath"
   cp "$CONFIG_PATH/nginx/partials"/* "$partialsPath"
   if [ "$CRAFT_ENV" = "local" ]; then
