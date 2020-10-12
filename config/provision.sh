@@ -78,8 +78,9 @@ fi
 # General system setup =================================================
 timedatectl set-timezone Asia/Riyadh
 makeswap_auto # (1/4 of total memory)
-log "Installing [curl, wget, unzip]"
-apt_get curl wget unzip
+log "Installing [curl, unzip, wget]"
+apt-get -qq update >/dev/null
+apt-get -qq install curl unzip wget >/dev/null
 
 # Update PHP config ====================================================
 log "Configuring PHP $PHP_VERSION"

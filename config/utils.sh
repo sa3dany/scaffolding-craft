@@ -7,7 +7,6 @@ C='\033[0;36m'
 NC='\033[0m'
 
 apt_get() {
-  apt-get -qq update >/dev/null
   apt-get -qq install $* >/dev/null
 }
 
