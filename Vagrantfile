@@ -52,7 +52,7 @@ Vagrant.configure("2") do |config|
     }
   end
   # Restore db
-  config.trigger.before [:destroy, :halt] do |trigger|
+  config.trigger.before [:halt] do |trigger|
     trigger.warn = "Dumping database"
     trigger.run_remote = {
       env: {

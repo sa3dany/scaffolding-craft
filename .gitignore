@@ -1,3 +1,4 @@
 .creds.*
 .vagrant
+*.sql
 node_modules
