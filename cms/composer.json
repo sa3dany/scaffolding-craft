@@ -1,4 +1,6 @@
 {
+  "name": "company/www",
+  "description": "",
   "require": {
     "craftcms/aws-s3": "1.2.11",
     "craftcms/cms": "^3.5.10",
