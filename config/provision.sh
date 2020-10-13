@@ -23,6 +23,7 @@ EOF
 # Validate CONFIG_PATH, then load utils.sh =============================
 CONFIG_PATH="${CONFIG_PATH:-$(dirname "$0")}"
 [ ! -f "$CONFIG_PATH/sh/utils.sh" ] && usage && exit 1
+source "$CONFIG_PATH/sh/colors.sh"
 source "$CONFIG_PATH/sh/utils.sh"
 
 # Validate remaining environment variables =============================
@@ -43,7 +44,7 @@ if [ -z "$CRAFT_PATH" ] || [ -z "$CRAFT_HOSTNAME" ]; then
 fi
 
 if [ -z $(hostname_get_domain "$CRAFT_HOSTNAME") ]; then
-  log_error "$CRAFT_HOSTNAME is not a valid domain name"
+  echored "$CRAFT_HOSTNAME is not a valid domain name"
   exit 1
 fi
 
@@ -55,50 +56,49 @@ fi
 
 if [ "$CRAFT_DROP_DB" = true ] &&
   [ "$CRAFT_ENV" = "production" ]; then
-  log_error "CRAFT_DROP_DB=true is not allowed on production"
+  echored "CRAFT_DROP_DB=true is not allowed on production"
   exit 1
 fi
 
 if [ ! -z "$CRAFT_RESTORE_DB" ] && [ "$CRAFT_DROP_DB" = true ]; then
-  log_error "CRAFT_RESTORE_DB & CRAFT_DROP_DB are mutually exclusive"
+  echored "CRAFT_RESTORE_DB & CRAFT_DROP_DB are mutually exclusive"
   exit 1
 fi
 
 if [ ! -z "$CRAFT_RESTORE_DB" ]; then
   if [ ! -f "$CRAFT_RESTORE_DB" ]; then
-    log_error "CRAFT_RESTORE_DB is not a file: $CRAFT_RESTORE_DB"
+    echored "CRAFT_RESTORE_DB is not a file: $CRAFT_RESTORE_DB"
     exit 1
   fi
   if [[ $CRAFT_RESTORE_DB != *.sql ]]; then
-    log_error "CRAFT_RESTORE_DB is not an SQL file: $CRAFT_RESTORE_DB"
+    echored "CRAFT_RESTORE_DB is not an SQL file: $CRAFT_RESTORE_DB"
     exit 1
   fi
 fi
 
 # General system setup =================================================
-log "Setting timezone"
+echogreen "Setting timezone"
 timedatectl set-timezone Asia/Riyadh
-log "Addin swap space (if not already available)"
+echogreen "Adding swap space (if not already available)"
 makeswap_auto # (1/4 of total memory)
 
 # Install dependencies =================================================
 apt-get -qq update >/dev/null
-log "Installing dependencies"
-log "Installing [curl, git, unzip, wget]"
-apt-get -qq install curl git unzip wget >/dev/null
-log "Installing PHP"
-php_get $PHP_VERSION
-log "Installing Composer"
-composer_get
-log "Installing NGINX"
-apt-get -qq install certbot nginx python3-certbot-nginx >/dev/null
-log "installing MySQL"
-apt-get -qq install mysql-server >/dev/null
-log "Installing Postfix"
-apt-get -qq install postfix >/dev/null
+echogreen "Installing dependencies"
+apt-get -qq install curl git unzip wget \
+  >/dev/null && echoblue -n "  curl, git, unzip, wget"
+php_get $PHP_VERSION >/dev/null
+composer_get >/dev/null &&
+  echoblue -n "  php-$PHP_VERSION, composer"
+apt-get -qq install certbot nginx python3-certbot-nginx \
+  >/dev/null && echoblue -n "  nginx, certbot"
+apt-get -qq install mysql-server \
+  >/dev/null && echoblue -n "  mysql"
+apt-get -qq install postfix \
+  >/dev/null && echoblue -n "  postfix"
 
 # Update PHP config ====================================================
-log "Configuring PHP $PHP_VERSION"
+echogreen "Configuring PHP $PHP_VERSION"
 php_mod_add $PHP_VERSION craftcms "$CONFIG_PATH/php/php.ini"
 php_mod_enable $PHP_VERSION craftcms
 
@@ -106,7 +106,7 @@ php_mod_enable $PHP_VERSION craftcms
 # Make sure to setup SMTP relay in G Suite with the website's static IP
 # SEE: https://support.google.com/a/answer/176600?hl=en
 if [ "$CRAFT_ENV" != "local" ]; then
-  log "POSTFIX setup through G Suite relay"
+  echogreen "POSTFIX setup through G Suite relay"
   postfix_relay_to_gsuite "$(hostname_get_domain "$CRAFT_HOSTNAME")"
 fi
 
@@ -122,13 +122,13 @@ is_not_installed() {
 # Unused
 remove_existing_dotenv() {
   if [ -f "$CRAFT_PATH/.env" ]; then
-    log "Removing existing .env file"
+    echogreen "Removing existing .env file"
     rm "$CRAFT_PATH/.env"
   fi
 }
 
 download_craft() {
-  log "Downloading Craft CMS [Composer]"
+  echogreen "Downloading Craft CMS [Composer]"
   local vendorPath="/usr/local/lib/craft"
   [ ! -d "$vendorPath" ] && mkdir "$vendorPath"
   set_permissions www-data:www-data 774 "$vendorPath"
@@ -137,12 +137,12 @@ download_craft() {
 }
 
 delete_db() {
-  log "Dropping existing database (if any)"
+  echogreen "Dropping existing database (if any)"
   mysql_db_drop "cms"
 }
 
 restore_db() {
-  log "Restoring database from backup"
+  echogreen "Restoring database from backup"
   sudo --user=www-data \
     "$CRAFT_PATH/craft" restore/db "$CRAFT_RESTORE_DB" --interactive=0 \
     >/dev/null
@@ -154,10 +154,10 @@ generate_app_id() {
   #     src/console/controllers/SetupController.php#L173
   # Also: `craft setup/app-id --interactive=0`
   # Which saves the output in the `.env` file
-  log "Generating app ID"
+  echogreen "Generating app ID"
   [ -z "$CRAFT_APP_ID" ] &&
     CRAFT_APP_ID="$(random_uuid "CraftCMS")"
-  log_info "  $CRAFT_APP_ID"
+  echoblue "  $CRAFT_APP_ID"
 }
 
 generate_security_key() {
@@ -166,14 +166,14 @@ generate_security_key() {
   #     src/console/controllers/SetupController.php#L189
   # Also: `craft setup/security-key --interactive=0`
   # Which saves the output in the `.env` file
-  log "Generating security key"
+  echogreen "Generating security key"
   [ -z "$CRAFT_SECURITY_KEY" ] &&
     CRAFT_SECURITY_KEY="$(random_password 32)"
-  log_info "  $CRAFT_SECURITY_KEY"
+  echoblue "  $CRAFT_SECURITY_KEY"
 }
 
 save_setup_keys() {
-  log "Saving Craft CMS app ID & security key"
+  echogreen "Saving Craft CMS app ID & security key"
   local setupFile="$CONFIG_PATH/cms/install.env"
   echo "# Added by provision script. Commit to repo." >|"$setupFile"
   echo "APP_ID=$CRAFT_APP_ID" >>"$setupFile"
@@ -181,7 +181,7 @@ save_setup_keys() {
 }
 
 generate_dotenv() {
-  log 'Generating .env file'
+  echogreen 'Generating .env file'
   if [ "$CRAFT_ENV" = "local" ]; then
     export SITE_URL="http://$CRAFT_HOSTNAME"
   else
@@ -196,7 +196,7 @@ generate_dotenv() {
 }
 
 set_the_file_permissions() {
-  log "Setting file permissions"
+  echogreen "Setting file permissions"
   local owner=www-data:www-data
   local mode=774
   local path="$CRAFT_PATH"
@@ -210,14 +210,14 @@ set_the_file_permissions() {
 }
 
 create_a_database() {
-  log "Creating database"
+  echogreen "Creating database"
   mysql_db_create "cms"
   mysql_user_add "cms_user" "cms_password"
   mysql_user_grant "cms_user" "cms"
 }
 
 setup_the_web_server() {
-  log "Configuring NGINX"
+  echogreen "Configuring NGINX"
   export PHP_VERSION CRAFT_HOSTNAME CRAFT_PATH
   local config="$(mktemp)"
   local certEmail="msaadany@iceweb.co"
@@ -241,25 +241,25 @@ setup_the_web_server() {
 }
 
 run_the_setup() {
-  log "Installing Craft CMS"
+  echogreen "Installing Craft CMS"
   local password="$(random_password)"
   local email="msaadany@iceweb.co"
   sudo --user=www-data \
     "$CRAFT_PATH/craft" install --interactive=0 \
     --email=$email --password="$password" \
     >/dev/null
-  log_info "$(printf "  %-10s %-30s\n" Email: $email)"
-  log_info "$(printf "  %-10s %-30s\n" Password: $password)"
+  echoblue "$(printf "  %-10s %-30s\n" Email: $email)"
+  echoblue "$(printf "  %-10s %-30s\n" Password: $password)"
 }
 
 clear_all_caches() {
-  log 'Clearing Craft CMS caches'
+  echogreen 'Clearing Craft CMS caches'
   "$CRAFT_PATH/craft" clear-caches/compiled-templates >/dev/null 2>&1
   "$CRAFT_PATH/craft" clear-caches/data >/dev/null 2>&1
 }
 
 project_config_apply() {
-  log 'Applying Craft CMS project config'
+  echogreen 'Applying Craft CMS project config'
   sudo --user=www-data \
     "$CRAFT_PATH/craft" project-config/apply \
     >/dev/null
@@ -267,7 +267,7 @@ project_config_apply() {
 
 mailer_test() {
   [ "$CRAFT_ENV" = "local" ] && return 0
-  log 'Testing mail sending from Craft CMS'
+  echogreen 'Testing mail sending from Craft CMS'
   local to="msaadany@iceweb.co"
   sudo --user=www-data \
     "$CRAFT_PATH/craft" mailer/test --interactive=0 --to $to \
@@ -279,8 +279,8 @@ download_craft
 
 if is_not_installed; then
   if [ "$CRAFT_ENV" != "local" ] && [ -z "$CRAFT_RESTORE_DB" ]; then
-    log_error "First non-local provision requires CRAFT_RESTORE_DB to be set"
-    log_error "visit: http://${CRAFT_HOSTNAME}/admin/utilities/db-backup"
+    echored "First non-local provision requires CRAFT_RESTORE_DB to be set"
+    echored "visit: http://${CRAFT_HOSTNAME}/admin/utilities/db-backup"
     exit 2
   fi
 fi
