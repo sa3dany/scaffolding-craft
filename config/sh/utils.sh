@@ -1,11 +1,3 @@
-R='\033[0;31m'
-G='\033[0;32m'
-Y='\033[0;33m'
-B='\033[0;34m'
-M='\033[0;35m'
-C='\033[0;36m'
-NC='\033[0m'
-
 apt_get() {
   apt-get -qq install $* >/dev/null
 }
@@ -53,22 +45,6 @@ env_from_file() {
 
 hostname_get_domain() {
   echo -n "$(regexp_match "$1" '^(.*\.)?\K([^.]+)(\.[^.]+?)$')"
-}
-
-log_colorize() {
-  echo -e "${1}${2}${NC}"
-}
-
-log() {
-  log_colorize "$G" "$1"
-}
-
-log_error() {
-  log_colorize >&2 "$R" "$1"
-}
-
-log_info() {
-  log_colorize "$Y" "$1"
 }
 
 mysql_db_import() {
@@ -129,8 +105,7 @@ php_get() {
     php${1}-mysql \
     php${1}-zip \
     php${1}-xml \
-    php-imagick \
-    >/dev/null
+    php-imagick
 }
 
 php_mod_add() {

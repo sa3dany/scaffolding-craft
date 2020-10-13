@@ -22,8 +22,8 @@ EOF
 
 # Validate CONFIG_PATH, then load utils.sh =============================
 CONFIG_PATH="${CONFIG_PATH:-$(dirname "$0")}"
-[ ! -f "$CONFIG_PATH/utils.sh" ] && usage && exit 1
-source "$CONFIG_PATH/utils.sh"
+[ ! -f "$CONFIG_PATH/sh/utils.sh" ] && usage && exit 1
+source "$CONFIG_PATH/sh/utils.sh"
 
 # Validate remaining environment variables =============================
 CRAFT_ENV="${CRAFT_ENV:-local}"
