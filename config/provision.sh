@@ -5,7 +5,6 @@ export DEBIAN_FRONTEND="noninteractive"
 function usage() {
   cat <<"EOF"
 Required environment variables:
-  CONFIG_PATH          Provisioning script config path
   CRAFT_HOSTNAME       hostname of the website
   CRAFT_PATH           Craft CMS base path
 
@@ -21,7 +20,7 @@ EOF
 }
 
 # Validate CONFIG_PATH, then load utils.sh =============================
-CONFIG_PATH="${CONFIG_PATH:-$(dirname "$0")}"
+CONFIG_PATH="$(dirname "$0")"
 [ ! -f "$CONFIG_PATH/sh/utils.sh" ] && usage && exit 1
 source "$CONFIG_PATH/sh/colors.sh"
 source "$CONFIG_PATH/sh/utils.sh"
