@@ -132,7 +132,15 @@ download_craft() {
   [ ! -d "$vendorPath" ] && mkdir "$vendorPath"
   set_permissions www-data:www-data 774 "$vendorPath"
   sudo --user=www-data \
-    composer --working-dir="$CRAFT_PATH" --no-cache --quiet install
+    composer \
+    --working-dir="$CRAFT_PATH" \
+    --no-cache \
+    --no-dev \
+    --no-interaction \
+    --no-progress \
+    --optimize-autoloader \
+    --prefer-dist \
+    install
 }
 
 delete_db() {
