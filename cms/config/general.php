@@ -31,6 +31,7 @@ return [
 
     // Craft config settings from constants
     'cacheDuration' => 0,
+    'defaultImageQuality' => 60,
     'defaultWeekStartDay' => 0,
     'errorTemplatePrefix' => 'errors/',
     'generateTransformsBeforePageLoad' => true,
