@@ -19,6 +19,8 @@ EOF
   #   CRAFT_SECURITY_KEY  Craft security key
 }
 
+# TODO: Don't /dev/null CRAFT commands!!!!!
+
 # Validate CONFIG_PATH, then load utils.sh =============================
 CONFIG_PATH="$(dirname "$0")"
 [ ! -f "$CONFIG_PATH/sh/utils.sh" ] && usage && exit 1
@@ -261,8 +263,12 @@ run_the_setup() {
 
 clear_all_caches() {
   echogreen 'Clearing Craft CMS caches'
-  "$CRAFT_PATH/craft" clear-caches/compiled-templates >/dev/null 2>&1
-  "$CRAFT_PATH/craft" clear-caches/data >/dev/null 2>&1
+  sudo --user=www-data \
+    "$CRAFT_PATH/craft" clear-caches/compiled-templates
+  >/dev/null 2>&1
+  sudo --user=www-data \
+    "$CRAFT_PATH/craft" clear-caches/data
+  >/dev/null 2>&1
 }
 
 project_config_apply() {
